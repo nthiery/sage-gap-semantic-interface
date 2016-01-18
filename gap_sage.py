@@ -5,8 +5,10 @@ EXAMPLES::
     sage: G = GAPParent(gap(PermutationGroup([[1,3,2]])), Groups().Finite())
 """
 
-from sage.misc.bindable_class import BindableClass
-from monkey_patch import MonkeyPatch
+from misc.monkey_patch import monkey_patch
+import categories
+import sage.categories
+monkey_patch(categories, sage.categories)
 
 #G = Groups().Finite()
 #G.GAP=ConstantFunction(G)
@@ -15,18 +17,25 @@ from monkey_patch import MonkeyPatch
 #    class Finite:
  #       pass
 
-Groups.Finite
+from sage.categories.category_with_axiom import CategoryWithAxiom, all_axioms
 
-class _(MonkeyPatch, Groups):
-    class Finite:
+all_axioms += "GAP"
 
-        class GAP(Category):
-            def super_categories(self):
-                return [Groups().Finite()]
 
-            class ParentMethods:
-                def list(self):
-                    return self.gap().List()
+#Sets().subcategory_class.GAP = Sets.SubcategoryMethods.__dict__["GAP"]
+
+
+# Groups.Finite
+# class _(MonkeyPatch, Groups):
+#     class Finite:
+
+#         class GAP(CategoryWithAxiom):
+
+#             _base_category_class_and_axiom = (Groups.Finite, "GAP")
+
+#             class ParentMethods:
+#                 def list(self):
+#                     return self.gap().List()
 
 class GAPParent(Parent):
     def __init__(self, gap_handle, category):

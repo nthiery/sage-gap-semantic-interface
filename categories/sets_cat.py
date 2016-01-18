@@ -64,4 +64,4 @@ class Sets:
         class GAP(CategoryWithAxiom):
             class ParentMethods:
                 def list(self):
-                    return self.gap().List()
+                    return [self(handle) for handle in self.gap().List()]

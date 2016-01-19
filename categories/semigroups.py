@@ -37,6 +37,8 @@ class Semigroups:
             def is_d_trivial(self):
                 return self.gap().IsDTrivial().sage()
 
+    class Finite:
+        class ParentMethods:
             def j_classes(self):
                 return self._wrap(self.gap().JClasses())
 
@@ -51,6 +53,9 @@ class Semigroups:
 
             def structure_description_schutzenberger_groups(self):
                 return self._wrap(self.gap().StructureDescriptionSchutzenbergerGroups())
+
+            def isomorphism_transformation_semigroup(self):
+                return self._wrap(self.gap().IsomorphismTransformationSemigroup())
 
     class Unital:
         class GAP(CategoryWithAxiom):
@@ -72,4 +77,10 @@ class Semigroups:
                         False
                     """
                     return tuple(self(handle) for handle in self.gap().GeneratorsOfMonoid())
+
+        class Finite:
+            class GAP(CategoryWithAxiom):
+                class ParentMethods:
+                    def isomorphism_transformation_monoid(self):
+                        return self._wrap(self.gap().IsomorphismTransformationMonoid())
 

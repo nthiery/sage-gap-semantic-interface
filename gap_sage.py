@@ -2,6 +2,8 @@
 
 EXAMPLES::
 
+    sage: gap.LoadPackage('"semigroups"')   # If available; needed for some examples below
+
     sage: from gap_sage import mygap
 
     sage: G = mygap.Group("(1,2)(3,4)", "(5,6)")
@@ -23,11 +25,32 @@ EXAMPLES::
     sage: H = M / [ [ m1^2, m1], [m2^2, m2], [m1*m2*m1, m2*m1*m2]]
     sage: H.category()
     Category of gap monoids
+    sage: H.is_finite()
+    True
     sage: H.cardinality()
     6
+    sage: H.is_r_trivial()
+    True
+    sage: H.is_l_trivial()                   # todo: not implemented in Semigroups; see https://bitbucket.org/james-d-mitchell/semigroups/issues/146/
+    True
+
+    sage: classes = H.j_classes(); classes
+    [ {m1*m2*m1}, {m2*m1}, {m1}, {m1*m2}, {m2}, {<identity ...>} ]
+
+That's nice::
+
+    sage: classes.category()
+    sage: c = classes[0]; c
+
+That's not; we would want this to be a collection::
+
+    sage: c.category()
+    Category of elements of [ {m1*m2*m1}, {m2*m1}, {m1}, {m1*m2}, {m2}, {<identity ...>} ]
 
     sage: pi1, pi2 = H.monoid_generators()
-    sage: pi1^2                               # TODO: how to reduce?
+    sage: pi1^2                              # TODO: how to reduce?
+
+
 
 Mixing and matching Sage and GAP elements::
 
@@ -47,6 +70,7 @@ TODO:
 - Keep the handle and the semantic handle separate or together?
 - Why does GapElement (which can be e.g. a handle to a group) inherit from RingElement?
   => As a workaround to enable arithmetic and coercion ...
+- Would we want to be able to call directly gap methods, as in H.IsJTrivial() ?
 """
 
 from misc.monkey_patch import monkey_patch

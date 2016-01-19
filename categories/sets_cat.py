@@ -27,6 +27,9 @@ class Sets:
     class GAP(CategoryWithAxiom):
         class ParentMethods:
 
+            def is_finite(self):
+                return self.gap().IsFinite().Sage()
+
             def cardinality(self):
                 return self.gap().Size().sage()
 

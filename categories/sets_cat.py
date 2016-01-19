@@ -28,7 +28,7 @@ class Sets:
         class ParentMethods:
 
             def is_finite(self):
-                return self.gap().IsFinite().Sage()
+                return self.gap().IsFinite().sage()
 
             def cardinality(self):
                 return self.gap().Size().sage()

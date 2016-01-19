@@ -2,56 +2,61 @@
 
 EXAMPLES::
 
-    sage: G = GAPParent(gap(PermutationGroup([[1,3,2]])))
+    sage: from gap_sage import mygap
+
+    sage: G = mygap.Group("(1,2)(3,4)", "(5,6)")
     sage: G.category()
     Category of finite commutative gap groups
     sage: G.list()
-    [(), (2,3)]
-    sage: G.random_element()
+    [(), (1,2)(3,4), (5,6), (1,2)(3,4)(5,6)]
+    sage: G.an_element()
     ()
+    sage: G.random_element() # random
+    (5,6)
 
-    sage: G = GAPParent(gap.FreeMonoid(2))
-    sage: G.category()
+    sage: M = mygap.FreeMonoid(2)
+    sage: M.category()
     Category of infinite gap monoids
 
-    sage: s1, s2 = G.monoid_generators()
+    sage: m1, m2 = M.monoid_generators()
 
-    sage: H = GAPParent( G / [ [ s1^2, G.one()], [s2^2, G.one()], [s1*s2*s1, s2*s1*s2]] )
+    sage: H = M / [ [ m1^2, m1], [m2^2, m2], [m1*m2*m1, m2*m1*m2]]
     sage: H.category()
     Category of gap monoids
     sage: H.cardinality()
     6
 
-    sage: t1, t2 = H.monoid_generators()
-    sage: t1^2
+    sage: pi1, pi2 = H.monoid_generators()
+    sage: pi1^2                               # TODO: how to reduce?
 
 Mixing and matching Sage and GAP elements::
 
-    sage: C = cartesian_product([G, SymmetricGroup(3)])
+    sage: C = cartesian_product([M, ZZ])
     sage: C.category()
-    Category of Cartesian products of semigroups
+    Category of Cartesian products of monoids
+    sage: C.an_element()
+    (m1, 1)
 
-    sage: s1, s2, s3 = G.semigroup_generators()
-    sage: s1 * s3 * s2
-    s1*s3*s2
-
-    sage: c1,c2 = SymmetricGroup(3).group_generators()
-    sage: x = cartesian_product([s1,c1])
-    sage: y = cartesian_product([s3,c2])
+    sage: x = cartesian_product([m1,3])
+    sage: y = cartesian_product([m2,5])
     sage: x*y
-    (s1*s3, (1,3,2))
+    (m1*m2, 15)
 
 TODO:
 - Choose a good name for the category, in particular in the repr ("gap semigroup" is ambiguous!)
 - Keep the handle and the semantic handle separate or together?
 - Why does GapElement (which can be e.g. a handle to a group) inherit from RingElement?
-- Analogue of an_element in GAP?
-
+  => As a workaround to enable arithmetic and coercion ...
 """
 
 from misc.monkey_patch import monkey_patch
-from sage.categories.category_with_axiom import CategoryWithAxiom, all_axioms
+from sage.categories.category_with_axiom import all_axioms
 from sage.structure.element import Element
+from sage.categories.sets_cat import Sets
+from sage.categories.unital_algebras import Magmas
+from sage.structure.parent import Parent
+from sage.interfaces.gap import Gap, gap
+
 
 import categories
 import sage.categories
@@ -77,6 +82,21 @@ false_properties_to_axioms = {
     "IsFinite": "Infinite",
 }
 
+def GAP(gap_handle):
+    if gap_handle.IsCollection():
+        return GAPParent(gap_handle)
+    else:
+        return GAPObject(gap_handle)
+
+class MyGap(Gap):
+    def function_call(self, function, args=None, kwds=None):
+        # Triggers an infinite recursion, since function_call is used for functions
+        # and methods of MyGap objects as well
+        # return GAP(super(MyGap, self).function_call(function, args=args, kwds=kwds))
+        return GAP(gap.function_call(function, args=args, kwds=kwds))
+
+mygap = MyGap()
+
 class GAPObject(object):
     def __init__(self, gap_handle):
         self._gap = gap_handle
@@ -86,6 +106,9 @@ class GAPObject(object):
 
     def _repr_(self):
         return repr(self.gap())
+
+    def _wrap(self, obj):
+        return GAP(obj)
 
 class GAPParent(GAPObject, Parent):
     def __init__(self, gap_handle):

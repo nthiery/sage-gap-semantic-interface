@@ -25,8 +25,8 @@ class Semigroups:
                 """
                 return tuple(self(handle) for handle in self.gap().GeneratorsOfSemigroup())
 
-            def __div__(self, relations):
-                return self.gap() / gap([[x.gap(), y.gap()] for x,y in relations])
+            def __truediv__(self, relations):
+                return self._wrap( self.gap() / gap([[x.gap(), y.gap()] for x,y in relations]) )
 
     class Unital:
         class GAP(CategoryWithAxiom):

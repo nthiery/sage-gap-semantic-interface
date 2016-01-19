@@ -26,12 +26,23 @@ class Sets:
 
     class GAP(CategoryWithAxiom):
         class ParentMethods:
+
             def cardinality(self):
                 return self.gap().Size().sage()
 
+            def _an_element_(self):
+                """
+                Return an element of this set.
+
+                EXAMPLES::
+
+                    sage: 
+                """
+                return self(self.gap().Representative())
+
             def random_element(self):
                 """
-                Return a random element of this group.
+                Return a random element of this set.
 
                 OUTPUT:
 

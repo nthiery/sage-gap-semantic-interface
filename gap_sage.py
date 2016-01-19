@@ -22,6 +22,21 @@ EXAMPLES::
 
     sage: m1, m2 = M.monoid_generators()
 
+Mixing and matching Sage and GAP elements::
+
+    sage: C = cartesian_product([M, ZZ])
+    sage: C.category()
+    Category of Cartesian products of monoids
+    sage: C.an_element()
+    (m1, 1)
+
+    sage: x = cartesian_product([m1,3])
+    sage: y = cartesian_product([m2,5])
+    sage: x*y
+    (m1*m2, 15)
+
+Quotient monoids::
+
     sage: H = M / [ [ m1^2, m1], [m2^2, m2], [m1*m2*m1, m2*m1*m2]]
     sage: H.category()
     Category of gap monoids
@@ -29,6 +44,9 @@ EXAMPLES::
     True
     sage: H.cardinality()
     6
+
+Exploring functionalities from the Semigroups package::
+
     sage: H.is_r_trivial()
     True
     sage: H.is_l_trivial()                   # todo: not implemented in Semigroups; see https://bitbucket.org/james-d-mitchell/semigroups/issues/146/
@@ -51,19 +69,10 @@ That's not; we would want this to be a collection::
     sage: pi1^2                              # TODO: how to reduce?
 
 
+Apparently not available for this kind of monoids::
 
-Mixing and matching Sage and GAP elements::
+    sage: H.structure_description_schutzenberger_groups()
 
-    sage: C = cartesian_product([M, ZZ])
-    sage: C.category()
-    Category of Cartesian products of monoids
-    sage: C.an_element()
-    (m1, 1)
-
-    sage: x = cartesian_product([m1,3])
-    sage: y = cartesian_product([m2,5])
-    sage: x*y
-    (m1*m2, 15)
 
 TODO:
 - Choose a good name for the category, in particular in the repr ("gap semigroup" is ambiguous!)

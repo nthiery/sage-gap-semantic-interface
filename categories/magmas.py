@@ -12,7 +12,9 @@ class Magmas:
 
                 EXAMPLES::
 
-                    sage: G = GAPParent(gap.FreeSemigroup(3))
+                    sage: sys.path.insert(0, "./")
+                    sage: from gap_sage import mygap
+                    sage: G = mygap.FreeSemigroup(3)
                     sage: s1, s2, s3 = G.semigroup_generators()
                     sage: s1 * s3 * s2
                     s1*s3*s2

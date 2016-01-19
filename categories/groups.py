@@ -5,6 +5,7 @@ class Groups:
     class GAP(CategoryWithAxiom):
 
         class ParentMethods:
+
             @cached_method
             def is_abelian(self):
                 r"""
@@ -22,3 +23,21 @@ class Groups:
                     False
                 """
                 return self.gap().IsAbelian().sage()
+
+            @cached_method
+            def group_generators(self):
+                r"""
+                Return generators for this group.
+
+                OUTPUT:
+
+                    A tuple of elements of ``self``
+
+                EXAMPLES::
+
+                    sage: SL(1, 17).is_abelian()
+                    True
+                    sage: SL(2, 17).is_abelian()
+                    False
+                """
+                return tuple(self(handle) for handle in self.gap().GeneratorsOfGroup())

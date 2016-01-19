@@ -41,3 +41,27 @@ class Groups:
                     False
                 """
                 return tuple(self(handle) for handle in self.gap().GeneratorsOfGroup())
+
+        class ElementMethods:
+
+            def __invert__(self):
+                r"""
+                Return the inverse of this element.
+
+                EXAMPLES::
+
+                    sage: sys.path.insert(0, "./")
+                    sage: from gap_sage import mygap
+                    sage: G = mygap.FreeGroup('"a"')
+                    sage: a, = G.group_generators()
+                    sage: a.__invert__()
+                    a^-1
+                    sage: a^-1
+                    a^-1
+                    sage: ~a
+                    a^-1
+                    sage: ~a * a
+                    <identity ...>
+                """
+                return self.parent()(self.gap().Inverse())
+

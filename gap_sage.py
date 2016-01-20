@@ -151,6 +151,19 @@ User interface and features
   Would we want to be able to call directly gap methods, as in H.IsJTrivial() ?
 - In general, do we want to hide the non semantic handles?
 
+- Accessing objects (and not just functions) from the global namespace of gap
+
+  For example, the "Cyclotomics" is a GAP object, not a
+  function. Currently one needs to do::
+
+      sage: libgap.eval("Cyclotomics")
+      Cyclotomics
+
+  Would we want instead::
+
+      sage: gap.eval("Cyclotomics")        # todo: not tested
+      Cyclotomics
+
 About the category-based approach
 ---------------------------------
 
@@ -190,12 +203,12 @@ libGAP
 - Feature: Tracing mode allowing for reproducing the sequence of GAP
   instructions corresponding to a sequence of Sage instructions::
 
-     sage: gap.log(True)
-     sage: G = gap.SymmetricGroup(3)
-     sage: G.cardinality()
-     6
+     sage: libgap.log(True)                   # todo: not implemented
+     sage: G = mygap.SymmetricGroup(3)
+     sage: G.list()
+     [(), (1,3), (1,2,3), (2,3), (1,3,2), (1,2)]
 
-     sage: print gap.get_log()
+     sage: print libgap.get_log()             # todo: not implemented
      $sage1 := SymmetricGroup(3);
      Size($sage1)
 
@@ -217,11 +230,14 @@ libGAP
 - Handling of strings as arguments to functions / methods. The following
   is a bit of a pain:
 
-      sage: gap.Group('"a"', '"b"')
+      sage: gap.FreeGroup('"a"', '"b"')
+      Group( [ a, b ] )
 
   I'd rather have GAP string evaluation being done explicitly:
 
-      sage: gap.eval("a")
+      sage: gap.FreeGroup("a", "b")        # not tested
+
+      sage: gap.eval("a")                  # not tested
 
   Is there a path for this without breaking backward compatibility?
 

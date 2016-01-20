@@ -52,14 +52,44 @@ class Groups:
                 - also accept list of relations as couples of elements,
                   like semigroup quotients do.
 
-                EXAMPLES::
+                EXAMPLES:
 
+                We define `ZZ^2` as a quotient of the free group
+                on two generators::
+
+                    sage: sys.path.insert(0, "./")
                     sage: from gap_sage import mygap
                     sage: F = mygap.FreeGroup( '"a"', '"b"' )
+                    sage: a, b = F.group_generators()
+                    sage: G = F / [ a * b * a^-1 * b^-1 ]
+                    sage: G
+                    Group( [ a, b ] )
+                    sage: a, b = G.group_generators()
+                    sage: a * b * a^-1 * b^-1
+                    a*b*a^-1*b^-1
+
+                Here, equality testing works well::
+
+                    sage: a * b * a^-1 * b^-1 == G.one()
+                    True
+
+                We define a Baumslag-Solitar group::
+
                     sage: a, b = F.group_generators()
                     sage: G = F / [ a * b * a^-1 * b^-2 ]
                     sage: G
                     Group( [ a, b ] )
+                    sage: a, b = G.group_generators()
+                    sage: a * b * a^-1 * b^-2
+                    a*b*a^-1*b^-2
+
+                Here, equality testing starts an infinite loop where GAP is trying
+                to make the rewriting system confluent (a better implementation
+                would alternate between making the rewriting system more confluent
+                and trying to answer the equality question -- this is a known
+                limitation of GAP's implementation of the Knuth-Bendix procedure)::
+
+                    sage: a * b * a^-1 * b^-2 == G.one() # not tested
                 """
                 return self._wrap( self.gap() / gap([x.gap() for x in relators]) )
 

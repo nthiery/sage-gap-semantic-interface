@@ -2,7 +2,7 @@
 EXAMPLES::
 
     sage: import sage.libs.gap.gap_functions
-    sage: sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField"])
+    sage: sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField"])
 
     sage: libgap.LoadPackage("semigroups")    # optional - semigroups Needed for some examples below
     true
@@ -322,10 +322,11 @@ def retrieve_category_of_gap_handle(self):
 
     EXAMPLES::
 
-        sage: gap_sage.retrieve_category_of_gap_handle(gap.FreeGroup(3))
+        sage: import gap_sage
+        sage: gap_sage.retrieve_category_of_gap_handle(libgap.FreeGroup(3))
         Category of groups
 
-        sage: gap.FiniteField(3).category()
+        sage: mygap.FiniteField(3).category()
         Category of finite gap fields
         sage: mygap.eval("Integers").category()
         Category of infinite commutative gap rings
@@ -476,6 +477,21 @@ class GAPParent(GAPObject, Parent):
 
     class Element(GAPObject, Element):
         def __init__(self, parent, gap_handle):
+            """
+            Initialize an element of ``parent`` 
+
+            .. TODO:: make this more robust
+
+            TESTS::
+
+                sage: G = mygap.FreeGroup(3)
+                sage: G(0)                      # This should blow up!
+                0
+                sage: G(0).gap()
+                0
+                sage: type(G(0).gap())
+                <type 'sage.rings.integer.Integer'>
+            """
             Element.__init__(self, parent)
             GAPObject.__init__(self, gap_handle)
 

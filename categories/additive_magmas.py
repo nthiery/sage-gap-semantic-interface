@@ -19,7 +19,7 @@ class AdditiveMagmas:
                     sage: sys.path.insert(0, "./")
                     sage: from gap_sage import mygap
                     sage: P = mygap.eval("PositiveIntegers")
-                    sage: a, = P.an_element()
+                    sage: a = P.an_element()
                     sage: a
                     1
                     sage: a + a
@@ -27,7 +27,7 @@ class AdditiveMagmas:
                 """
                 return self.parent(self.gap() + other.gap()) # TODO; call directly the gap operation
 
-    class Unital(CategoryWithAxiom):
+    class AdditiveUnital(CategoryWithAxiom):
 
         class GAP(CategoryWithAxiom):
 

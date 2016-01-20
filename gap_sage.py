@@ -1,12 +1,15 @@
 """
 EXAMPLES::
 
-    sage: gap.LoadPackage('"semigroups"')    # Needed for some examples below
+    sage: import sage.libs.gap.gap_functions
+    sage: sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField"])
+
+    sage: libgap.LoadPackage("semigroups")    # optional - semigroups Needed for some examples below
     true
 
     sage: from gap_sage import mygap
 
-    sage: G = mygap.Group("(1,2)(3,4)", "(5,6)")
+    sage: G = mygap.Group(libgap.eval("[(1,2)(3,4), (5,6)]"))
     sage: G.category()
     Category of finite gap groups
     sage: G.list()
@@ -66,8 +69,7 @@ form, or the hash function to compute first a normal form::
     sage: phi.domain() == H    # is?
     True
     sage: HH = phi.codomain(); HH
-    Monoid( [ Transformation( [ 2, 2, 5, 6, 5, 6 ] ),
-              Transformation( [ 3, 4, 3, 4, 6, 6 ] ) ] )
+    <transformation monoid on 6 pts with 2 generators>
 
     sage: C = HH.cayley_graph()
     sage: C.vertices()                         # random
@@ -99,24 +101,24 @@ form, or the hash function to compute first a normal form::
 
 Exploring functionalities from the Semigroups package::
 
-    sage: H.is_r_trivial()
+    sage: H.is_r_trivial()                   # optional - semigroups
     True
     sage: H.is_l_trivial()                   # todo: not implemented in Semigroups; see https://bitbucket.org/james-d-mitchell/semigroups/issues/146/
     True
 
-    sage: classes = H.j_classes(); classes
+    sage: classes = H.j_classes(); classes   # optional - semigroups
     [ {m1*m2*m1}, {m2*m1}, {m1}, {m1*m2}, {m2}, {<identity ...>} ]
 
 That's nice::
 
-    sage: classes.category()
+    sage: classes.category()                 # optional - semigroups
     Category of finite gap sets
-    sage: c = classes[0]; c
+    sage: c = classes[0]; c                  # optional - semigroups
     {m1*m2*m1}
 
 That's not; we would want this to be a collection::
 
-    sage: c.category()
+    sage: c.category()                       # optional - semigroups
     Category of elements of [ {m1*m2*m1}, {m2*m1}, {m1}, {m1*m2}, {m2}, {<identity ...>} ]
 
     sage: pi1, pi2 = H.monoid_generators()
@@ -258,11 +260,13 @@ from misc.monkey_patch import monkey_patch
 from sage.categories.category_with_axiom import all_axioms
 from sage.structure.element import Element
 from sage.categories.sets_cat import Sets
-from sage.categories.unital_algebras import Magmas
+from sage.categories.magmas import Magmas
+from sage.categories.additive_semigroups import AdditiveSemigroups
+from sage.categories.additive_groups import AdditiveGroups
+from sage.categories.rings import Rings
 from sage.structure.parent import Parent
-from sage.interfaces.gap import Gap, gap, GapElement
 from sage.misc.cachefunc import cached_method
-
+from sage.libs.gap.libgap import libgap
 
 import categories
 import sage.categories
@@ -273,7 +277,18 @@ all_axioms += "GAP"
 categories_to_categories = {
     "IsMagma": Magmas(),
     "IsMagmaWithOne": Magmas().Unital(),
-    "IsMagmaWithInverses": Magmas().Unital().Inverse()
+    "IsMagmaWithInverses": Magmas().Unital().Inverse(),
+
+    # Note: Additive Magmas are always assumed to be associative and commutative in GAP
+    # Near Additive Magmas don't require commutativity
+    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
+    "IsNearAdditiveMagma": AdditiveSemigroups(),
+    "IsAdditiveMagma": AdditiveSemigroups().AdditiveCommutative(),
+    "IsNearAdditiveMagmaWithZero": AdditiveSemigroups().AdditiveUnital(),
+    # "IsMagmaWithInversesIfNonzero": 
+
+    # Why isn't this a property?
+    "IsNearAdditiveGroup": AdditiveGroups(),
 }
 
 true_properties_to_axioms = {
@@ -282,6 +297,12 @@ true_properties_to_axioms = {
     "IsCommutative": "Commutative",
     "IsMonoidAsSemigroup": "Unital",
     "IsGroupAsSemigroup": "Inverse",
+    "IsAdditivelyCommutative": "AdditiveCommutative",
+
+    # Cheating: we don't have the LDistributive and RDistributive
+    # axioms, and the current infrastructure does not allow to make a
+    # "and" on two axioms
+    # "IsLDistributive": "Distributive"
 }
 
 false_properties_to_axioms = {
@@ -290,8 +311,8 @@ false_properties_to_axioms = {
 
 def retrieve_category_of_gap_handle(self):
     category = Sets()
-    for cat in self.CategoriesOfObject():
-        cat = str(cat)
+    gap_categories = [str(cat) for cat in self.CategoriesOfObject()]
+    for cat in gap_categories:
         if cat in categories_to_categories:
             category = category & categories_to_categories[cat]
     properties = set(str(prop) for prop in self.KnownPropertiesOfObject())
@@ -299,13 +320,19 @@ def retrieve_category_of_gap_handle(self):
     for prop in properties:
         if prop in true_properties:
             if prop in true_properties_to_axioms:
-                category = category._with_axiom(true_properties_to_axioms[prop])
+                axiom = true_properties_to_axioms[prop]
+                category = category._with_axiom(axiom)
         else:
             if prop in false_properties_to_axioms:
                 category = category._with_axiom(false_properties_to_axioms[prop])
-    return category
 
-GapElement.retrieve_category = retrieve_category_of_gap_handle
+    # Special cases that can't be handled by the infrastructure
+    if "IsLDistributive" in true_properties and "IsRDistributive" in true_properties:
+        # Work around: C._with_axiom("Distributive") does not work
+        category = category.Distributive()
+    if "IsMagmaWithInversesIfNonzero" in gap_categories and category.is_subcategory(Rings()):
+        category = category.Division()
+    return category
 
 def GAP(gap_handle):
     if gap_handle.IsCollection():
@@ -317,16 +344,32 @@ def GAP(gap_handle):
 
 sage.interfaces.gap.trace = False
 
-class MyGap(Gap):
-    def function_call(self, function, args=None, kwds=None):
-        # Triggers an infinite recursion, since function_call is used for functions
-        # and methods of MyGap objects as well
-        # return GAP(super(MyGap, self).function_call(function, args=args, kwds=kwds))
+class MyGap(object):
 
-        if sage.interfaces.gap.trace:
-            print "%s(%s)"%(function, ','.join(x if isinstance(x, str) else x._name for x in args))
+    class Function:
+        def __init__(self, f):
+            self._f = f
 
-        return GAP(gap.function_call(function, args=args, kwds=kwds))
+        def __call__(self, *args):
+            return GAP(self._f(*args))
+
+    def __getattr__(self, name):
+        return self.Function(libgap.__getattr__(name))
+
+    def eval(self, code):
+        """
+        Return a semantic handle on the result of evaluating ``code`` in GAP.
+
+        EXAMPLES::
+
+            sage: C = mygap.eval("Cyclotomics"); C
+            Cyclotomics
+            sage: C.gap().IsField()
+            true
+            sage: C.category()
+            Category of infinite gap fields
+        """
+        return GAP(libgap.eval(code))
 
 mygap = MyGap()
 
@@ -392,19 +435,16 @@ class GAPObject(object):
 
 class GAPParent(GAPObject, Parent):
     def __init__(self, gap_handle):
-        Parent.__init__(self, category=gap_handle.retrieve_category().GAP())
+        Parent.__init__(self, category=retrieve_category_of_gap_handle(gap_handle).GAP())
         GAPObject.__init__(self, gap_handle)
 
-    def _element_constructor(self, gap_handle):
-        assert isinstance(gap_handle, sage.interfaces.gap.GapElement)
-        return self.element_class(self, gap_handle)
-
-    def gap(self):
-        return self._gap
+    #def _element_constructor(self, gap_handle):
+    #    assert isinstance(gap_handle, sage.interfaces.gap.GapElement)
+    #    return self.element_class(self, gap_handle)
 
     def _refine_category_(self, category=None):
         if category is None:
-            category = self.gap().retrieve_category().GAP()
+            category = retrieve_category_of_gap_handle(self.gap())
         super(GAPParent, self)._refine_category_(category)
 
     class Element(GAPObject, Element):

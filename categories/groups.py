@@ -1,6 +1,6 @@
 from sage.categories.category_with_axiom import CategoryWithAxiom, all_axioms
 from sage.misc.cachefunc import cached_method
-from sage.interfaces.gap import gap
+from sage.libs.gap.libgap import libgap
 
 class Groups:
     class GAP(CategoryWithAxiom):
@@ -54,14 +54,15 @@ class Groups:
 
                 EXAMPLES::
 
+                    sage: sys.path.insert(0, "./")
                     sage: from gap_sage import mygap
-                    sage: F = mygap.FreeGroup( '"a"', '"b"' )
+                    sage: F = mygap.FreeGroup( "a", "b" )
                     sage: a, b = F.group_generators()
                     sage: G = F / [ a * b * a^-1 * b^-2 ]
                     sage: G
-                    Group( [ a, b ] )
+                    <fp group of size infinity on the generators [ a, b ]>
                 """
-                return self._wrap( self.gap() / gap([x.gap() for x in relators]) )
+                return self._wrap( self.gap() / libgap([x.gap() for x in relators]) )
 
         class ElementMethods:
 
@@ -73,7 +74,7 @@ class Groups:
 
                     sage: sys.path.insert(0, "./")
                     sage: from gap_sage import mygap
-                    sage: G = mygap.FreeGroup('"a"')
+                    sage: G = mygap.FreeGroup("a")
                     sage: a, = G.group_generators()
                     sage: a.__invert__()
                     a^-1

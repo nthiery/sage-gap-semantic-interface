@@ -14,13 +14,15 @@ class Sets:
 
             EXAMPLES::
 
+                sage: sys.path.insert(0, "./")
+                sage: from gap_sage import mygap
                 sage: Sets().GAP()
 
             TESTS::
 
                 sage: TestSuite(Sets().GAP()).run()
                 sage: Groups().GAP.__module__
-                'sage.categories.sets_cat'
+                'categories.sets_cat'
             """
             return self._with_axiom('GAP')
 
@@ -39,7 +41,10 @@ class Sets:
 
                 EXAMPLES::
 
-                    sage: 
+                    sage: sys.path.insert(0, "./")
+                    sage: from gap_sage import mygap
+                    sage: mygap.SymmetricGroup(3).an_element()
+                    (1,2,3)
                 """
                 return self(self.gap().Representative())
 

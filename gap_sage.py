@@ -128,15 +128,111 @@ Apparently not available for this kind of monoids::
     sage: H.structure_description_schutzenberger_groups() # todo: not implemented
 
 
-TODO:
-- Choose a good name for the category, in particular in the repr ("gap semigroup" is ambiguous!)
+TODO and design discussions
+===========================
+
+Vocabulary
+----------
+
+- "semantic handle" versus "handle" versus ???
+
+User interface and features
+---------------------------
+
 - Keep the handle and the semantic handle separate or together?
+- For a Sage object, what should .gap() return: a plain handle or a semantic handle
+- Make it easy for the user to discover GAP methods and access documentation
+  By tab completion?
+  On the object itself or on some attribute of it?
+
+       H.IsFinite   /   H.gap.IsFinite   /   H.gap().IsFinite()
+
+  Should the method call return a plain gap handle or a semantic one?
+  Would we want to be able to call directly gap methods, as in H.IsJTrivial() ?
+- In general, do we want to hide the non semantic handles?
+
+About the category-based approach
+---------------------------------
+
+- Pros: very little infrastructure; infrastructure that can be easily
+  reused by other parents / ...
+
+- Issue: because the GAP interface mixins are part of the category
+  hierarchy, there can be ambiguity (how often?) between using an
+  existing generic implementation in Sage and using the GAP interface.
+
+  Example: (TODO)
+
+- Choose a good name for the categories:
+
+  - Semigroups().GAP()
+  - Semigroups()._GAP()
+
+  And for their repr:
+
+  - Category of gap semigroups (ambiguous: semigroups having a gap?)
+  - Category of semigroups implemented in GAP (long)
+  - Category of GAP semigroups
+
+Source code organization
+------------------------
+
+- Separate file / folder with monkey patching of the main Sage categories?
+  This makes it handy for automatic generation / maintenance
+- Issue: Some duplication in the nested classes requires consistency
+  betwen nested classes of the main categories and the nested classes
+  here
+- Issue: How to support lazy import?
+
+libGAP
+------
+
+- Feature: Tracing mode allowing for reproducing the sequence of GAP
+  instructions corresponding to a sequence of Sage instructions::
+
+     sage: gap.log(True)
+     sage: G = gap.SymmetricGroup(3)
+     sage: G.cardinality()
+     6
+
+     sage: print gap.get_log()
+     $sage1 := SymmetricGroup(3);
+     Size($sage1)
+
+  Applications:
+  - Debugging the interface
+  - Learning how to do the same computation in GAP
+
+  - In case of issue/limitation/..., being able to test if the problem
+    is in the interface or in GAP, and in the later case to send a
+    plain GAP scenario to the GAP devs
+
+- Method(s) for calling a GAP function (given by a name) or operator
+  (given by a string, like "*") on a bunch of handles::
+
+      libgap.call("Size", gap_handle)
+      libgap.call("+", gap_handle, gap_handle)
+
+- Renable Tab completion in "gap" object
+- Handling of strings as arguments to functions / methods. The following
+  is a bit of a pain:
+
+      sage: gap.Group('"a"', '"b"')
+
+  I'd rather have GAP string evaluation being done explicitly:
+
+      sage: gap.eval("a")
+
+  Is there a path for this without breaking backward compatibility?
+
 - Why does GapElement (which can be e.g. a handle to a group) inherit from RingElement?
   => As a workaround to enable arithmetic and coercion ...
-- Would we want to be able to call directly gap methods, as in H.IsJTrivial() ?
 
-- Tracing mode allowing for reproducing the sequence of GAP
-  instructions corresponding to a sequence of Sage instructions
+Misc TODO
+---------
+
+- Merge gap / mygap
+- Merging the code into Sage
 """
 
 import sys

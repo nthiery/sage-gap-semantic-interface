@@ -1,5 +1,6 @@
 from sage.categories.category_with_axiom import CategoryWithAxiom, all_axioms
 from sage.misc.cachefunc import cached_method
+from sage.interfaces.gap import gap
 
 class Groups:
     class GAP(CategoryWithAxiom):
@@ -41,6 +42,26 @@ class Groups:
                     False
                 """
                 return tuple(self(handle) for handle in self.gap().GeneratorsOfGroup())
+
+            def __truediv__(self, relators):
+                r"""
+                Return the quotient group of self by list of relations or relators
+
+                TODO:
+
+                - also accept list of relations as couples of elements,
+                  like semigroup quotients do.
+
+                EXAMPLES::
+
+                    sage: from gap_sage import mygap
+                    sage: F = mygap.FreeGroup( '"a"', '"b"' )
+                    sage: a, b = F.group_generators()
+                    sage: G = F / [ a * b * a^-1 * b^-2 ]
+                    sage: G
+                    Group( [ a, b ] )
+                """
+                return self._wrap( self.gap() / gap([x.gap() for x in relators]) )
 
         class ElementMethods:
 

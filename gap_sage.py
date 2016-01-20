@@ -316,6 +316,24 @@ false_properties_to_axioms = {
 }
 
 def retrieve_category_of_gap_handle(self):
+    """
+    Return the category corresponding to the properties and categories
+    of the handled gap object.
+
+    EXAMPLES::
+
+        sage: gap_sage.retrieve_category_of_gap_handle(gap.FreeGroup(3))
+        Category of groups
+
+        sage: gap.FiniteField(3).category()
+        Category of finite gap fields
+        sage: mygap.eval("Integers").category()
+        Category of infinite commutative gap rings
+        sage: mygap.eval("PositiveIntegers").category()
+        Category of infinite commutative associative unital additive commutative additive associative distributive gap magmas and additive magmas
+        sage: mygap.eval("Cyclotomics").category()
+        Category of infinite gap fields
+    """
     category = Sets()
     gap_categories = [str(cat) for cat in self.CategoriesOfObject()]
     for cat in gap_categories:

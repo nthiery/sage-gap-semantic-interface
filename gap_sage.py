@@ -259,6 +259,8 @@ sys.path.insert(0, "./")          # TODO
 from misc.monkey_patch import monkey_patch
 from sage.categories.category_with_axiom import all_axioms
 from sage.structure.element import Element
+from categories.lie_algebras import LieAlgebras
+from sage.categories.rings import Rings
 from sage.categories.sets_cat import Sets
 from sage.categories.magmas import Magmas
 from sage.categories.additive_semigroups import AdditiveSemigroups
@@ -303,6 +305,10 @@ true_properties_to_axioms = {
     # axioms, and the current infrastructure does not allow to make a
     # "and" on two axioms
     # "IsLDistributive": "Distributive"
+
+    # GAP's IsLieAlgebra is a filter to several properties,
+    # IsAlgebra, IsZeroSquareRing, and IsJacobianRing
+    "IsJacobianRing": LieAlgebras(Rings())
 }
 
 false_properties_to_axioms = {
@@ -321,7 +327,10 @@ def retrieve_category_of_gap_handle(self):
         if prop in true_properties:
             if prop in true_properties_to_axioms:
                 axiom = true_properties_to_axioms[prop]
-                category = category._with_axiom(axiom)
+                if isinstance(axiom, str):
+                    category = category._with_axiom(axiom)
+                else:
+                    category = category & axiom
         else:
             if prop in false_properties_to_axioms:
                 category = category._with_axiom(false_properties_to_axioms[prop])
@@ -431,7 +440,7 @@ class GAPObject(object):
         return self.__class__ is other.__class__ and bool(self.gap().EQ(other.gap()))
 
     def __ne__(self, other):
-        return self != other
+        return not self == other
 
 class GAPParent(GAPObject, Parent):
     def __init__(self, gap_handle):

@@ -255,8 +255,9 @@ import sys
 sys.path.insert(0, "./")          # TODO
 
 from misc.monkey_patch import monkey_patch
+from sage.misc.cachefunc import cached_method
+from sage.misc.nested_class import nested_pickle
 from sage.categories.category_with_axiom import all_axioms
-from sage.structure.element import Element
 from categories.lie_algebras import LieAlgebras
 from sage.categories.rings import Rings
 from sage.categories.sets_cat import Sets
@@ -264,8 +265,8 @@ from sage.categories.magmas import Magmas
 from sage.categories.additive_semigroups import AdditiveSemigroups
 from sage.categories.additive_groups import AdditiveGroups
 from sage.categories.rings import Rings
+from sage.structure.element import Element
 from sage.structure.parent import Parent
-from sage.misc.cachefunc import cached_method
 from sage.libs.gap.libgap import libgap
 from sage.libs.gap.element import GapElement
 
@@ -486,7 +487,9 @@ class GAPObject(object):
     def __ne__(self, other):
         return not self == other
 
+@nested_pickle
 class GAPParent(GAPObject, Parent):
+
     def __init__(self, gap_handle):
         Parent.__init__(self, category=retrieve_category_of_gap_handle(gap_handle).GAP())
         GAPObject.__init__(self, gap_handle)

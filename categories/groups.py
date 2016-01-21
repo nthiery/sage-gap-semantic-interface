@@ -92,27 +92,3 @@ class Groups:
                     sage: a * b * a^-1 * b^-2 == G.one() # not tested
                 """
                 return self._wrap( self.gap() / libgap([x.gap() for x in relators]) )
-
-        class ElementMethods:
-
-            def __invert__(self):
-                r"""
-                Return the inverse of this element.
-
-                EXAMPLES::
-
-                    sage: sys.path.insert(0, "./")
-                    sage: from gap_sage import mygap
-                    sage: G = mygap.FreeGroup("a")
-                    sage: a, = G.group_generators()
-                    sage: a.__invert__()
-                    a^-1
-                    sage: a^-1
-                    a^-1
-                    sage: ~a
-                    a^-1
-                    sage: ~a * a
-                    <identity ...>
-                """
-                return self.parent()(self.gap().Inverse())
-

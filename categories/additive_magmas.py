@@ -55,3 +55,28 @@ class AdditiveMagmas:
 
                     """
                     return self(self.gap().Zero())
+
+        class AdditiveInverse:
+            class GAP(CategoryWithAxiom):
+                class ElementMethods:
+                    def __neg__(self):
+                        r"""
+                        Return the opposite of this element.
+
+                        EXAMPLES::
+
+                            sage: sys.path.insert(0, "./")
+                            sage: from gap_sage import mygap
+                            sage: Z4 = mygap.ZmodnZ(4)
+                            sage: a = Z4.an_element(); a
+                            ZmodnZObj( 1, 4 )
+                            sage: a.__neg__()
+                            ZmodnZObj( 3, 4 )
+                            sage: -a
+                            ZmodnZObj( 3, 4 )
+                            sage: -a + a
+                            ZmodnZObj( 0, 4 )
+                            sage: a - a
+                            ZmodnZObj( 0, 4 )
+                        """
+                        return self.parent()(self.gap().AdditiveInverse())

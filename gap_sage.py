@@ -1,9 +1,6 @@
 """
 EXAMPLES::
 
-    sage: import sage.libs.gap.gap_functions
-    sage: sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField"])
-
     sage: libgap.LoadPackage("semigroups")    # optional - semigroups Needed for some examples below
     true
 
@@ -249,8 +246,9 @@ libGAP
 Misc TODO
 ---------
 
-- Merge gap / mygap
+- Merge libgap / mygap
 - Merging the code into Sage
+- Support for iterators
 """
 
 import sys
@@ -269,10 +267,17 @@ from sage.categories.rings import Rings
 from sage.structure.parent import Parent
 from sage.misc.cachefunc import cached_method
 from sage.libs.gap.libgap import libgap
+from sage.libs.gap.element import GapElement
 
 import categories
 import sage.categories
 monkey_patch(categories, sage.categories)
+
+# libgap does not know about several functions
+# This is a temporary workaround to let some of the tests run
+import sage.libs.gap.gap_functions
+sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra"])
+
 
 all_axioms += "GAP"
 
@@ -403,6 +408,26 @@ mygap = MyGap()
 
 class GAPObject(object):
     def __init__(self, gap_handle):
+        """
+
+        EXAMPLES::
+
+            sage: from gap_sage import GAPObject
+            sage: GAPObject(libgap.FreeGroup(3))
+            <gap_sage.GAPObject object at ...>
+            sage: GAPObject(0)
+            Traceback (most recent call last):
+            ...
+            ValueError: Not a handle to a gap object: 0
+
+            sage: G = mygap.FreeGroup(3)
+            sage: G(0)
+            Traceback (most recent call last):
+            ...
+            ValueError: Not a handle to a gap object: 0
+        """
+        if not isinstance(gap_handle, GapElement):
+            raise ValueError("Not a handle to a gap object: %s"%gap_handle)
         self._gap = gap_handle
 
     def gap(self):
@@ -478,20 +503,14 @@ class GAPParent(GAPObject, Parent):
     class Element(GAPObject, Element):
         def __init__(self, parent, gap_handle):
             """
-            Initialize an element of ``parent`` 
+            Initialize an element of ``parent``
 
             .. TODO:: make this more robust
 
-            TESTS::
-
-                sage: G = mygap.FreeGroup(3)
-                sage: G(0)                      # This should blow up!
-                0
-                sage: G(0).gap()
-                0
-                sage: type(G(0).gap())
-                <type 'sage.rings.integer.Integer'>
             """
+            #from sage.libs.gap.element import GapElement
+            #if not isinstance(gap_handle, GapElement):
+            #    raise ValueError("Input not a GAP handle")
             Element.__init__(self, parent)
             GAPObject.__init__(self, gap_handle)
 

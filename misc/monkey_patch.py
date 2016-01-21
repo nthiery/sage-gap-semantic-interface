@@ -6,9 +6,8 @@ def monkey_patch(source, target, verbose=False):
     """
     EXAMPLES::
 
-        sage: sys.path.insert(0, "/home/nthiery/Sage-Combinat/sage-semigroups/")
-
-        sage: from sage_semigroups.misc.monkey_patch import monkey_patch
+        sage: sys.path.insert(0, "./")
+        sage: from misc.monkey_patch import monkey_patch
 
         sage: class A(object):
         ....:     def f(self):

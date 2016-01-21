@@ -96,6 +96,26 @@ form, or the hash function to compute first a normal form::
      (m2, m2*m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
      (m2, m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] ))]
 
+
+Testing that a couple of GAP parents pass all tests; this means that
+they are likely to behave reasonably as native Sage parents::
+
+    sage: skip = ["_test_pickling", "_test_elements"] # Pickling fails for now
+
+    sage: F = mygap.eval("Cyclotomics"); F
+    Cyclotomics
+    sage: F.category()
+    Category of infinite gap fields
+    sage: F.zero()        # workaround https://github.com/gap-system/gap/issues/517
+    0
+    sage: TestSuite(F).run(skip=skip)
+
+    sage: F = mygap.SymmetricGroup(3); F
+    Sym( [ 1 .. 3 ] )
+    sage: F.category()
+    Category of finite gap groups
+    sage: TestSuite(F).run(skip=skip)
+
 Exploring functionalities from the Semigroups package::
 
     sage: H.is_r_trivial()                   # optional - semigroups
@@ -277,7 +297,7 @@ monkey_patch(categories, sage.categories)
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
 import sage.libs.gap.gap_functions
-sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ"])
+sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod"])
 
 
 all_axioms += "GAP"

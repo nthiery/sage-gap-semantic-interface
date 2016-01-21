@@ -48,6 +48,20 @@ def monkey_patch(source, target, verbose=False):
         sage: a_nested = A.Nested()
         sage: a_nested.f()
         'calling AMonkeyPatch.Nested.f'
+
+    TESTS:
+
+    The original module name of a class is left unchanged::
+
+        sage: class source:
+        ....:    __module__ = 'source_module'
+        sage: class target:
+        ....:    __module__ = 'target_module'
+        sage: target
+        <class target_module.target at ...>
+        sage: monkey_patch(source, target)
+        sage: target
+        <class target_module.target at ...>
     """
     if verbose:
         print "Monkey patching %s into %s"%(source.__name__, target.__name__)
@@ -73,6 +87,10 @@ def monkey_patch(source, target, verbose=False):
             assert isinstance(subtarget, (type, ClassType))
             monkey_patch(subsource, subtarget, verbose=verbose)
             continue
+        # Don't override the module name of the target
+        if key == "__module__":
+            continue
+        # Don't override existing documentation with undefined documentation
         if key == "__doc__" and subsource is None:
             continue
         setattr(target, key, subsource)

@@ -47,7 +47,7 @@ class Magmas:
                         sage: ~a * a
                         <identity ...>
 
-                    This also works when the inverse is only partially defined::
+                    This also works when inverses are defined everywhere but for zero::
 
                         sage: F = mygap.FiniteField(3)
                         sage: a = F.one(); a
@@ -61,6 +61,29 @@ class Magmas:
                         Traceback (most recent call last):
                         ...
                         ValueError: 0*Z(3) is not invertible
+
+                    .. WARN::
+
+                        In other cases, GAP may return the inverse in
+                        a larger domain without this being noticed by
+                        Sage at this point::
+
+                            sage: N = mygap.eval("Integers")
+                            sage: x = N.one()
+
+                        Probably acceptable::
+
+                            sage: y = ~(x + x); y
+                            1/2
+
+                        Not acceptable::
+
+                            sage: y.parent()
+                            Integers
+
+                    Should we have a category for the analogue of
+                    MagmasWithInverseIfNonZero, and move this method
+                    there?
                     """
                     from sage.libs.gap.libgap import libgap
                     fail = libgap.eval("fail")

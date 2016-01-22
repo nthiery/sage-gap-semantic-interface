@@ -357,14 +357,8 @@ def GAP(gap_handle):
         3
         2
     """
-    if gap_handle.IsCollection():
-        return GAPParent(gap_handle)
-    elif gap_handle.IsIterator():
-        return GAPIterator(gap_handle)
-    elif gap_handle.IsMapping():
-        return GAPMorphism(gap_handle)
-    else:
-        return GAPObject(gap_handle)
+    structure = retrieve_structure_of_gap_handle(gap_handle)
+    return structure.cls(gap_handle, structure.category)
 
 class MyGap(object):
 
@@ -399,7 +393,7 @@ class MyGap(object):
 mygap = MyGap()
 
 class GAPObject(object):
-    def __init__(self, gap_handle):
+    def __init__(self, gap_handle, category=None):
         """
 
         EXAMPLES::
@@ -480,9 +474,8 @@ class GAPObject(object):
 
 @nested_pickle
 class GAPParent(GAPObject, Parent):
-
-    def __init__(self, gap_handle):
-        Parent.__init__(self, category=retrieve_structure_of_gap_handle(gap_handle).GAP())
+    def __init__(self, gap_handle, category=Sets()):
+        Parent.__init__(self, category=category.GAP())
         GAPObject.__init__(self, gap_handle)
 
     #def _element_constructor(self, gap_handle):
@@ -491,8 +484,9 @@ class GAPParent(GAPObject, Parent):
 
     def _refine_category_(self, category=None):
         if category is None:
-            category = retrieve_structure_of_gap_handle(self.gap())
-        super(GAPParent, self)._refine_category_(category)
+            structure = retrieve_structure_of_gap_handle(self.gap())
+            assert structure.cls is GAPParent
+        super(GAPParent, self)._refine_category_(structure.category)
 
     class Element(GAPObject, Element):
         def __init__(self, parent, gap_handle):
@@ -586,7 +580,8 @@ def add(category=None, cls=object):
         if cls is not None:
             assert issubclass(cls, structure.cls)
             structure.cls = cls
-        structure.category &= category
+        if category is not None:
+            structure.category &= category
     return f
 
 def add_axiom(axiom):
@@ -611,6 +606,9 @@ class Structure:
         self.cls = cls
         self.category = category
 
+    def __repr__(self):
+        return repr((self.category, self.cls))
+
 gap_category_to_structure = {
     "IsMagma": add(Magmas()),
     "IsMagmaWithOne": add(Magmas().Unital()),
@@ -626,6 +624,9 @@ gap_category_to_structure = {
 
     # Why isn't this a property?
     "IsNearAdditiveGroup": add(AdditiveGroups()),
+    "IsIterator": add(cls=GAPIterator),
+    # Cheating a bit: this should be IsMapping, which further requires IsTotal and IsSingleValued
+    "IsGeneralMapping": add(cls=GAPMorphism, category=Sets()),
 }
 
 true_properties_to_structure = {
@@ -658,8 +659,12 @@ def retrieve_structure_of_gap_handle(self):
     EXAMPLES::
 
         sage: import mygap
-        sage: mygap.retrieve_structure_of_gap_handle(libgap.FreeGroup(3))
-        Category of groups
+        sage: F = libgap.FreeGroup(3)
+        sage: mygap.retrieve_structure_of_gap_handle(F)
+        (Category of groups, <class 'mygap.GAPParent'>)
+
+        sage: mygap.retrieve_structure_of_gap_handle(F.Iterator())
+        (Category of objects, <class 'mygap.GAPIterator'>)
 
         sage: from mygap import mygap
         sage: mygap.FiniteField(3).category()
@@ -692,4 +697,4 @@ def retrieve_structure_of_gap_handle(self):
         structure.category = structure.category.Distributive()
     if "IsMagmaWithInversesIfNonzero" in gap_categories and structure.category.is_subcategory(Rings()):
         structure.category = structure.category.Division()
-    return structure.category
+    return structure

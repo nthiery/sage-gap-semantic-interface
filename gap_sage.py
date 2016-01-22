@@ -116,6 +116,12 @@ they are likely to behave reasonably as native Sage parents::
     Category of finite gap groups
     sage: TestSuite(F).run(skip=skip)
 
+    sage: F = mygap.FiniteField(3); F
+    GF(3)
+    sage: F.category()
+    Category of finite gap fields
+    sage: TestSuite(F).run(skip=skip)
+
 Exploring functionalities from the Semigroups package::
 
     sage: H.is_r_trivial()                   # optional - semigroups
@@ -389,8 +395,19 @@ def retrieve_category_of_gap_handle(self):
     return category
 
 def GAP(gap_handle):
+    """
+    EXAMPLES::
+
+        sage: it = GAP(libgap([1,3,2]).Iterator())
+        sage: for x in it: print x
+        1
+        3
+        2
+    """
     if gap_handle.IsCollection():
         return GAPParent(gap_handle)
+    elif gap_handle.IsIterator():
+        return GAPIterator(gap_handle)
     elif gap_handle.IsMapping():
         return GAPMorphism(gap_handle)
     else:
@@ -409,6 +426,9 @@ class MyGap(object):
 
     def __getattr__(self, name):
         return self.Function(libgap.__getattr__(name))
+
+    def __call__(self, *args):
+        return GAP(libgap(*args))
 
     def eval(self, code):
         """
@@ -551,3 +571,47 @@ class GAPMorphism(GAPObject): # TODO: inherit from morphism and move the methods
 
     def preimage(self, y):
         return self.domain()(self.gap().PreImageElm(y.gap()))
+
+class GAPIterator(GAPObject):
+    def __iter__(self):
+        """
+        Return self, as per the iterator protocol.
+
+        TESTS::
+
+            sage: l = libgap([1,3,2])
+            sage: it = GAPIterator(l.Iterator())
+            sage: it.__iter__() is it
+            True
+        """
+        return self
+
+
+    def next(self):
+        """
+        Return the next object of this iterator or raise StopIteration, as
+        per the iterator protocol.
+
+        TESTS::
+
+            sage: l = libgap([1,3,2])
+            sage: it = GAPIterator(l.Iterator())
+            sage: it.next()
+            1
+            sage: it.next()
+            3
+            sage: it.next()
+            2
+            sage: it.next()
+            Traceback (most recent call last):
+            ...
+            StopIteration
+
+            sage: for x in GAPIterator(l.Iterator()): print x
+            1
+            3
+            2
+        """
+        if self.gap().IsDoneIterator():
+            raise StopIteration
+        return self.gap().NextIterator()

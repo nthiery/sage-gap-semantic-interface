@@ -1,28 +1,64 @@
 """
-EXAMPLES::
+``Semantic aware`` sage interface to GAP
+
+This module, built on top of libgap, enriches the handles to GAP
+objects by retrieving their mathematical properties from GAP, and
+exposing them to Sage, to make them behave as native Sage objects.
+
+EXAMPLES:
+
+Some initialization::
 
     sage: libgap.LoadPackage("semigroups")    # optional - semigroups Needed for some examples below
     true
 
     sage: from gap_sage import mygap
 
+Let's construct a handle to a GAP permutation group::
+
     sage: G = mygap.Group(libgap.eval("[(1,2)(3,4), (5,6)]"))
-    sage: G.category()
-    Category of finite gap groups
+
+This "semantic" handle is automatically recognized as a Sage group::
+
+    sage: G in Groups()
+    True
+
+and behaves as such::
+
     sage: G.list()
     [(), (1,2)(3,4), (5,6), (1,2)(3,4)(5,6)]
     sage: G.an_element()
     ()
     sage: G.random_element() # random
     (5,6)
+    sage: s, t = G.group_generators()
+    sage: s * t
+    (1,2)(3,4)(5,6)
+
+This handle is actually in the "category of GAP groups"::
+
+    sage: G.category()
+    Category of finite gap groups
+
+This category, together with its super categories of "GAP monoids",
+"GAP magmas", etc, provide wrapper methods that translate the Sage
+method calls to the corresponding GAP function calls.
+
+Doing this using a hierarchy of categories allow to implement, for
+example, once for all the wrapper method for multiplication (_mul_ ->
+Prod) for all multiplicative structures in Sage.
+
+Let's now consider a monoid::
 
     sage: M = mygap.FreeMonoid(2)
     sage: M.category()
     Category of infinite gap monoids
 
     sage: m1, m2 = M.monoid_generators()
+    sage: m1 * m2 * m1 * m2
+    (m1*m2)^2
 
-Mixing and matching Sage and GAP elements::
+We can now mix and match Sage and GAP elements::
 
     sage: C = cartesian_product([M, ZZ])
     sage: C.category()
@@ -35,7 +71,7 @@ Mixing and matching Sage and GAP elements::
     sage: x*y
     (m1*m2, 15)
 
-Quotient monoids::
+Here is a quotient monoid::
 
     sage: H = M / [ [ m1^2, m1], [m2^2, m2], [m1*m2*m1, m2*m1*m2]]
     sage: H.category()
@@ -52,15 +88,19 @@ Quotient monoids::
     sage: H.list()
     [<identity ...>, m1, m2, m1*m2, m2*m1, m1*m2*m1]
 
-The following do not work because the elements don't have a normal
-form. We would need to have the monoid elements represented in normal
-form, or the hash function to compute first a normal form::
+Building the Cayley graph does not work because the elements don't
+have a normal form. We would need to have the monoid elements
+represented in normal form, or the hash function to compute first a
+normal form. This problem is not specific to the Sage-GAP interface::
 
     sage: C = H.cayley_graph()
     sage: len(C.vertices())    # expecting 6
     13
     sage: len(C.edges())
     12
+
+So we build the Cayley graph from an isomorphic monoid having a normal
+form; this is the occasion to showcase the use of a GAP morphism::
 
     sage: phi = H.isomorphism_transformation_monoid()
     sage: phi.domain() == H    # is?
@@ -82,6 +122,7 @@ form, or the hash function to compute first a normal form::
     sage: C.relabel(phi.preimage)
     sage: sorted(C.vertices(), key=str)
     [<identity ...>, m1, m1*m2, m1*m2*m1, m2, m2*m1]
+
     sage: sorted(C.edges(),    key=str)
     [(<identity ...>, m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
      (<identity ...>, m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] )),
@@ -97,8 +138,9 @@ form, or the hash function to compute first a normal form::
      (m2, m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] ))]
 
 
-Testing that a couple of GAP parents pass all tests; this means that
-they are likely to behave reasonably as native Sage parents::
+Let's construct a variety of GAP parents to check that they pass all
+the generic tests; this means that they have a chance to behave
+reasonably as native Sage parents::
 
     sage: skip = ["_test_pickling", "_test_elements"] # Pickling fails for now
 

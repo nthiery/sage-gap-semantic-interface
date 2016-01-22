@@ -17,7 +17,7 @@ class AdditiveMagmas:
                 EXAMPLES::
 
                     sage: sys.path.insert(0, "./")
-                    sage: from gap_sage import mygap
+                    sage: from mygap import mygap
                     sage: P = mygap.eval("PositiveIntegers")
                     sage: a = P.an_element()
                     sage: a
@@ -41,7 +41,7 @@ class AdditiveMagmas:
                     EXAMPLE::
 
                         sage: sys.path.insert(0, "./")
-                        sage: from gap_sage import mygap
+                        sage: from mygap import mygap
                         sage: N = mygap.eval("Integers"); N
                         Integers
                         sage: N.zero()
@@ -66,7 +66,7 @@ class AdditiveMagmas:
                         EXAMPLES::
 
                             sage: sys.path.insert(0, "./")
-                            sage: from gap_sage import mygap
+                            sage: from mygap import mygap
                             sage: Z4 = mygap.ZmodnZ(4)
                             sage: a = Z4.an_element(); a
                             ZmodnZObj( 1, 4 )

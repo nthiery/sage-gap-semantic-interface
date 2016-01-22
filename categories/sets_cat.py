@@ -15,7 +15,7 @@ class Sets:
             EXAMPLES::
 
                 sage: sys.path.insert(0, "./")   # TODO: remove those three lines before integrating in Sage
-                sage: from gap_sage import mygap
+                sage: from mygap import mygap
                 sage: from sage.categories.sets_cat import Sets
 
                 sage: Sets().GAP()
@@ -45,7 +45,7 @@ class Sets:
                 EXAMPLES::
 
                     sage: sys.path.insert(0, "./")
-                    sage: from gap_sage import mygap
+                    sage: from mygap import mygap
                     sage: mygap.SymmetricGroup(3).an_element()
                     (1,2,3)
                 """

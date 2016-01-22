@@ -9,7 +9,7 @@ class EnumeratedSets:
                 EXAMPLES::
 
                     sage: sys.path.insert(0, "./")
-                    sage: from gap_sage import mygap
+                    sage: from mygap import mygap
                     sage: F = mygap.FiniteField(3)
                     sage: for x in F: # indirect doctest
                     ....:     print x

@@ -13,7 +13,7 @@ class Magmas:
                 EXAMPLES::
 
                     sage: sys.path.insert(0, "./")
-                    sage: from gap_sage import mygap
+                    sage: from mygap import mygap
                     sage: G = mygap.FreeSemigroup(3)
                     sage: s1, s2, s3 = G.semigroup_generators()
                     sage: s1 * s3 * s2
@@ -100,7 +100,7 @@ class Magmas:
                     EXAMPLES::
 
                         sage: sys.path.insert(0, "./")
-                        sage: from gap_sage import mygap
+                        sage: from mygap import mygap
                         sage: G = mygap.FreeGroup("a")
                         sage: a, = G.group_generators()
                         sage: a.__invert__()

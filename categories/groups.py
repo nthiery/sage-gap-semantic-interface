@@ -58,7 +58,7 @@ class Groups:
                 on two generators::
 
                     sage: sys.path.insert(0, "./")
-                    sage: from gap_sage import mygap
+                    sage: from mygap import mygap
                     sage: F = mygap.FreeGroup("a", "b")
                     sage: a, b = F.group_generators()
                     sage: G = F / [ a * b * a^-1 * b^-1 ]

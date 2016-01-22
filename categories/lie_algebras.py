@@ -6,7 +6,7 @@ EXAMPLES:
 Create a Lie algebra::
 
     sage: sys.path.insert(0, "./")
-    sage: from gap_sage import mygap
+    sage: from mygap import mygap
     sage: a, b = matrix(ZZ, 2, [0, 1, 0, 0]), matrix(ZZ, 2, [0, 0, 1, 0])
     sage: L = mygap.LieAlgebra( QQ, [a, b] )
     sage: L
@@ -72,7 +72,7 @@ class LieAlgebras(Category_over_base_ring):
                 sage: LieAlgebras(Rings()).GAP().example()
                 <Lie algebra over Rationals, with 2 generators>
             """
-            from gap_sage import mygap
+            from mygap import mygap
             from sage.matrix.constructor import matrix
             from sage.rings.rational_field import QQ
             a = matrix([[0, 1],

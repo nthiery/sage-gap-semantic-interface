@@ -12,7 +12,7 @@ Some initialization::
     sage: libgap.LoadPackage("semigroups")    # optional - semigroups Needed for some examples below
     true
 
-    sage: from gap_sage import mygap
+    sage: from mygap import mygap
 
 Let's construct a handle to a GAP permutation group::
 
@@ -396,10 +396,11 @@ def retrieve_category_of_gap_handle(self):
 
     EXAMPLES::
 
-        sage: import gap_sage
-        sage: gap_sage.retrieve_category_of_gap_handle(libgap.FreeGroup(3))
+        sage: import mygap
+        sage: mygap.retrieve_category_of_gap_handle(libgap.FreeGroup(3))
         Category of groups
 
+        sage: from mygap import mygap
         sage: mygap.FiniteField(3).category()
         Category of finite gap fields
         sage: mygap.eval("Integers").category()
@@ -495,9 +496,9 @@ class GAPObject(object):
 
         EXAMPLES::
 
-            sage: from gap_sage import GAPObject
+            sage: from mygap import GAPObject
             sage: GAPObject(libgap.FreeGroup(3))
-            <gap_sage.GAPObject object at ...>
+            <mygap.GAPObject object at ...>
             sage: GAPObject(0)
             Traceback (most recent call last):
             ...

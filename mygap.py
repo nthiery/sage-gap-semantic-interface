@@ -325,9 +325,8 @@ sys.path.insert(0, "./")          # TODO
 from misc.monkey_patch import monkey_patch
 from sage.misc.cachefunc import cached_method
 from sage.misc.nested_class import nested_pickle
-from sage.categories.category_with_axiom import all_axioms
 from categories.lie_algebras import LieAlgebras
-from sage.categories.rings import Rings
+from sage.categories.objects import Objects
 from sage.categories.sets_cat import Sets
 from sage.categories.magmas import Magmas
 from sage.categories.additive_semigroups import AdditiveSemigroups
@@ -348,95 +347,6 @@ import sage.libs.gap.gap_functions
 sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod"])
 
 
-all_axioms += "GAP"
-
-categories_to_categories = {
-    "IsMagma": Magmas(),
-    "IsMagmaWithOne": Magmas().Unital(),
-    "IsMagmaWithInverses": Magmas().Unital().Inverse(),
-
-    # Note: Additive Magmas are always assumed to be associative and commutative in GAP
-    # Near Additive Magmas don't require commutativity
-    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
-    "IsNearAdditiveMagma": AdditiveSemigroups(),
-    "IsAdditiveMagma": AdditiveSemigroups().AdditiveCommutative(),
-    "IsNearAdditiveMagmaWithZero": AdditiveSemigroups().AdditiveUnital(),
-    # "IsMagmaWithInversesIfNonzero": 
-
-    # Why isn't this a property?
-    "IsNearAdditiveGroup": AdditiveGroups(),
-}
-
-true_properties_to_axioms = {
-    "IsFinite": "Finite",
-    "IsAssociative": "Associative",
-    "IsCommutative": "Commutative",
-    "IsMonoidAsSemigroup": "Unital",
-    "IsGroupAsSemigroup": "Inverse",
-    "IsAdditivelyCommutative": "AdditiveCommutative",
-
-    # Cheating: we don't have the LDistributive and RDistributive
-    # axioms, and the current infrastructure does not allow to make a
-    # "and" on two axioms
-    # "IsLDistributive": "Distributive"
-
-    # GAP's IsLieAlgebra is a filter to several properties,
-    # IsAlgebra, IsZeroSquareRing, and IsJacobianRing
-    "IsJacobianRing": LieAlgebras(Rings())
-}
-
-false_properties_to_axioms = {
-    "IsFinite": "Infinite",
-}
-
-def retrieve_category_of_gap_handle(self):
-    """
-    Return the category corresponding to the properties and categories
-    of the handled gap object.
-
-    EXAMPLES::
-
-        sage: import mygap
-        sage: mygap.retrieve_category_of_gap_handle(libgap.FreeGroup(3))
-        Category of groups
-
-        sage: from mygap import mygap
-        sage: mygap.FiniteField(3).category()
-        Category of finite gap fields
-        sage: mygap.eval("Integers").category()
-        Category of infinite commutative gap rings
-        sage: mygap.eval("PositiveIntegers").category()
-        Category of infinite commutative associative unital additive commutative additive associative distributive gap magmas and additive magmas
-        sage: mygap.eval("Cyclotomics").category()
-        Category of infinite gap fields
-    """
-    category = Sets()
-    gap_categories = [str(cat) for cat in self.CategoriesOfObject()]
-    for cat in gap_categories:
-        if cat in categories_to_categories:
-            category = category & categories_to_categories[cat]
-    properties = set(str(prop) for prop in self.KnownPropertiesOfObject())
-    true_properties = set(str(prop) for prop in self.KnownTruePropertiesOfObject())
-    for prop in properties:
-        if prop in true_properties:
-            if prop in true_properties_to_axioms:
-                axiom = true_properties_to_axioms[prop]
-                if isinstance(axiom, str):
-                    category = category._with_axiom(axiom)
-                else:
-                    category = category & axiom
-        else:
-            if prop in false_properties_to_axioms:
-                category = category._with_axiom(false_properties_to_axioms[prop])
-
-    # Special cases that can't be handled by the infrastructure
-    if "IsLDistributive" in true_properties and "IsRDistributive" in true_properties:
-        # Work around: C._with_axiom("Distributive") does not work
-        category = category.Distributive()
-    if "IsMagmaWithInversesIfNonzero" in gap_categories and category.is_subcategory(Rings()):
-        category = category.Division()
-    return category
-
 def GAP(gap_handle):
     """
     EXAMPLES::
@@ -455,8 +365,6 @@ def GAP(gap_handle):
         return GAPMorphism(gap_handle)
     else:
         return GAPObject(gap_handle)
-
-sage.interfaces.gap.trace = False
 
 class MyGap(object):
 
@@ -574,7 +482,7 @@ class GAPObject(object):
 class GAPParent(GAPObject, Parent):
 
     def __init__(self, gap_handle):
-        Parent.__init__(self, category=retrieve_category_of_gap_handle(gap_handle).GAP())
+        Parent.__init__(self, category=retrieve_structure_of_gap_handle(gap_handle).GAP())
         GAPObject.__init__(self, gap_handle)
 
     #def _element_constructor(self, gap_handle):
@@ -583,7 +491,7 @@ class GAPParent(GAPObject, Parent):
 
     def _refine_category_(self, category=None):
         if category is None:
-            category = retrieve_category_of_gap_handle(self.gap())
+            category = retrieve_structure_of_gap_handle(self.gap())
         super(GAPParent, self)._refine_category_(category)
 
     class Element(GAPObject, Element):
@@ -658,3 +566,130 @@ class GAPIterator(GAPObject):
         if self.gap().IsDoneIterator():
             raise StopIteration
         return self.gap().NextIterator()
+
+def add(category=None, cls=object):
+    """
+
+    EXAMPLES::
+
+        sage: from mygap import add, Structure
+        sage: s = Structure(object, Objects())
+        sage: add(Magmas())(s)
+        sage: s.category
+        Category of magmas
+        sage: s.cls
+        <class 'mygap.GAPParent'>
+    """
+    if cls is object and category is not None and category.is_subcategory(Sets()):
+        cls = GAPParent
+    def f(structure):
+        if cls is not None:
+            assert issubclass(cls, structure.cls)
+            structure.cls = cls
+        structure.category &= category
+    return f
+
+def add_axiom(axiom):
+    """
+
+    EXAMPLES::
+
+        sage: from mygap import add_axiom, Structure
+        sage: s = Structure(object, Magmas())
+        sage: add_axiom("Commutative")(s)
+        sage: s.category
+        Category of commutative magmas
+        sage: s.cls
+        <type 'object'>
+    """
+    def f(structure):
+        structure.category = structure.category._with_axiom(axiom)
+    return f
+
+class Structure:
+    def __init__(self, cls, category):
+        self.cls = cls
+        self.category = category
+
+gap_category_to_structure = {
+    "IsMagma": add(Magmas()),
+    "IsMagmaWithOne": add(Magmas().Unital()),
+    "IsMagmaWithInverses": add(Magmas().Unital().Inverse()),
+
+    # Note: Additive Magmas are always assumed to be associative and commutative in GAP
+    # Near Additive Magmas don't require commutativity
+    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
+    "IsNearAdditiveMagma": add(AdditiveSemigroups()),
+    "IsAdditiveMagma": add(AdditiveSemigroups().AdditiveCommutative()),
+    "IsNearAdditiveMagmaWithZero": add(AdditiveSemigroups().AdditiveUnital()),
+    # "IsMagmaWithInversesIfNonzero": 
+
+    # Why isn't this a property?
+    "IsNearAdditiveGroup": add(AdditiveGroups()),
+}
+
+true_properties_to_structure = {
+    "IsFinite": add_axiom("Finite"),
+    "IsAssociative": add_axiom("Associative"),
+    "IsCommutative": add_axiom("Commutative"),
+    "IsMonoidAsSemigroup": add_axiom("Unital"),
+    "IsGroupAsSemigroup": add_axiom("Inverse"), # Useful?
+    "IsAdditivelyCommutative": add_axiom("AdditiveCommutative"),
+
+    # Cheating: we don't have the LDistributive and RDistributive
+    # axioms, and the current infrastructure does not allow to make a
+    # "and" on two axioms
+    # "IsLDistributive": "Distributive"
+
+    # GAP's IsLieAlgebra is a filter to several properties,
+    # IsAlgebra, IsZeroSquareRing, and IsJacobianRing
+    "IsJacobianRing": add(LieAlgebras(Rings()))
+}
+
+false_properties_to_structure = {
+    "IsFinite": add_axiom("Infinite"),
+}
+
+def retrieve_structure_of_gap_handle(self):
+    """
+    Return the category corresponding to the properties and categories
+    of the handled gap object.
+
+    EXAMPLES::
+
+        sage: import mygap
+        sage: mygap.retrieve_structure_of_gap_handle(libgap.FreeGroup(3))
+        Category of groups
+
+        sage: from mygap import mygap
+        sage: mygap.FiniteField(3).category()
+        Category of finite gap fields
+        sage: mygap.eval("Integers").category()
+        Category of infinite commutative gap rings
+        sage: mygap.eval("PositiveIntegers").category()
+        Category of infinite commutative associative unital additive commutative additive associative distributive gap magmas and additive magmas
+        sage: mygap.eval("Cyclotomics").category()
+        Category of infinite gap fields
+    """
+    structure = Structure(GAPObject, Objects())
+    gap_categories = [str(cat) for cat in self.CategoriesOfObject()]
+    for cat in gap_categories:
+        if cat in gap_category_to_structure:
+            gap_category_to_structure[cat](structure)
+    properties = set(str(prop) for prop in self.KnownPropertiesOfObject())
+    true_properties = set(str(prop) for prop in self.KnownTruePropertiesOfObject())
+    for prop in properties:
+        if prop in true_properties:
+            if prop in true_properties_to_structure:
+                true_properties_to_structure[prop](structure)
+        else:
+            if prop in false_properties_to_structure:
+                false_properties_to_structure[prop](structure)
+
+    # Special cases that can't be handled by the infrastructure
+    if "IsLDistributive" in true_properties and "IsRDistributive" in true_properties:
+        # Work around: C._with_axiom("Distributive") does not work
+        structure.category = structure.category.Distributive()
+    if "IsMagmaWithInversesIfNonzero" in gap_categories and structure.category.is_subcategory(Rings()):
+        structure.category = structure.category.Division()
+    return structure.category

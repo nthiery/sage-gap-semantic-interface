@@ -339,12 +339,18 @@ from sage.libs.gap.element import GapElement
 
 import categories
 import sage.categories
-monkey_patch(categories, sage.categories)
+#monkey_patch(categories, sage.categories)
+import categories.objects
+import sage.categories.objects
+monkey_patch(categories.objects, sage.categories.objects)
 
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
 import sage.libs.gap.gap_functions
-sage.libs.gap.gap_functions.common_gap_functions.extend(["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod"])
+sage.libs.gap.gap_functions.common_gap_functions.extend(
+    (["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
+      r"\+",r"\-",
+  ]))
 
 
 def GAP(gap_handle):

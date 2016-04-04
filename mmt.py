@@ -1,29 +1,68 @@
 # -*- coding: utf-8 -*-
 
 """
-namespace = XXXXX("u'http://latin.omdoc.org/math")
+EXAMPLES::
 
->>> M = namespace.get_theory("Monoid")
->>> u = M["universe"]     # Return the type of the elements of monoids  (MonoidElement?)
->>> u = M["objects"]      # Return the type of the monoids (Monoid)
->>> u = M["morphism"]     # Return the type of the monoid morphisms (MonoidMorphism)
->>> u = M["homsets"]      # Return the type of the monoid homsets (MonoidHomset)
->>> e = M["e"]            # Return the identity constant (note that e is not defined in Monoid but in NeutralElementLeft/Right)
+    sage: sys.path.insert(0, "./")
+    sage: from mygap import mygap
+    sage: mygap.SymmetricGroup(3).an_element()
+    (1,2,3)
+
+    sage: G = Sp(4,GF(3))
+    sage: G.random_element()  # random
+    [2 1 1 1]
+    [1 0 2 1]
+    [0 1 1 0]
+    [1 0 0 1]
+    sage: G.random_element() in G
+    True
+
+    sage: F = GF(5); MS = MatrixSpace(F,2,2)
+    sage: gens = [MS([[1,2],[-1,1]]),MS([[1,1],[0,1]])]
+    sage: G = MatrixGroup(gens)
+    sage: G.random_element()  # random
+    [1 3]
+    [0 3]
+    sage: G.random_element().parent() is G
+    True
+
+
+Missing features
+================
+
+We would want to use F.random_element from ``Sets.GAP``, not :class:`FiniteEnumeratedSets`:
+
+        sage: F = mygap.FiniteField(3); F
+        GF(3)
+        sage: F.category()
+        Category of finite gap fields
+        sage: F.random_element.__module__
+        'sage.categories.finite_enumerated_sets'
+
+
+>> namespace = XXXXX("u'http://latin.omdoc.org/math")
+>> M = namespace.get_theory("Monoid")
+>> u = M["universe"]     # Return the type of the elements of monoids  (MonoidElement?)
+>> u = M["objects"]      # Return the type of the monoids (Monoid)
+>> u = M["morphism"]     # Return the type of the monoid morphisms (MonoidMorphism)
+>> u = M["homsets"]      # Return the type of the monoid homsets (MonoidHomset)
+>> e = M["e"]            # Return the identity constant (note that e is not defined in Monoid but in NeutralElementLeft/Right)
 
 e.return_type()           # Returns the type of the codomain
 
->>> e.return_type() == u
+>> e.return_type() == u
 True
 
->>> e.arity()             # (or a way to recover it)
+>> e.arity()             # (or a way to recover it)
 2
 
 # Assume f is a function of type X -> (Y -> Z), then
 
->>> f.return_type()
+>> f.return_type()
 Z
->>> f.argument_types()
+>> f.argument_types()
 [X,Y]
+
 """
 
 
@@ -41,7 +80,7 @@ def mmt_lookup_signature(mmt_theory, mmt_name):
     EXAMPLES::
 
         sage: from mmt import mmt_lookup_signature
-        sage: mmt_lookup_signature("Magma", u"∘")
+        sage: mmt_lookup_signature("Magma", u"∘")            # not tested
         ([OMID[u'http://latin.omdoc.org/math?Universe?u'],
           OMID[u'http://latin.omdoc.org/math?Universe?u']],
           OMID[u'http://latin.omdoc.org/math?Universe?u'])
@@ -80,15 +119,17 @@ class MMTWrap:
 class MMTWrapMethod(MMTWrap):
     """
 
+    .. TODO:: add real tests
+
     EXAMPLES::
 
         sage: from mmt import MMTWrapMethod
         sage: def zero(self):
-        ....      pass
-        sage: f = MMTWrapMethod(zero, "0", gap="Zero")
-        sage: c = f.generate_code()
+        ....:     pass
+        sage: f = MMTWrapMethod(zero, "0", gap_name="Zero")
+        sage: c = f.generate_code("NeutralElement")
         sage: c
-
+        <function zero at ...>
     """
     def __init__(self, f, mmt_name=None, gap_name=None, codomain=None, **options):
         MMTWrap.__init__(self, mmt_name, **options)

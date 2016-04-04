@@ -31,7 +31,7 @@ Z
 import inspect
 import importlib
 
-from sage.misc.abstract_method import abstract_method
+from sage.misc.abstract_method import abstract_method, AbstractMethod
 from sage.categories.category import Category
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.libs.gap.libgap import libgap
@@ -49,7 +49,6 @@ def mmt_lookup_signature(mmt_theory, mmt_name):
     from MMTPy.objects import path
     from MMTPy.connection import qmtclient
     from MMTPy.library.lf import wrappers
-    from MMTPy.declarations import declaration
 
     # Create a client to connect to MMT
     q = qmtclient.QMTClient("http://localhost:8080/")
@@ -72,7 +71,7 @@ def mmt_lookup_signature(mmt_theory, mmt_name):
 
 class MMTWrap:
     def __init__(self,
-                 mmt_name,
+                 mmt_name=None,
                  variant=None,
                  module=None):
         self.mmt_name = mmt_name
@@ -91,36 +90,44 @@ class MMTWrapMethod(MMTWrap):
         sage: c
 
     """
-    def __init__(self, f, mmt_name, gap_name=None, inner=None, **options):
+    def __init__(self, f, mmt_name=None, gap_name=None, codomain=None, **options):
         MMTWrap.__init__(self, mmt_name, **options)
         self.__imfunc__= f
         self.gap_name = gap_name
-        self.inner = inner
-        # self.arity = self.__imfunc__.__code__.co_argcount
-        # For an abstract method we need to fetch _f first
-        self.arity = self.__imfunc__._f.__code__.co_argcount
+        self.codomain = codomain
+        f = self.__imfunc__
+        if isinstance(f, AbstractMethod):
+            f = f._f
+        self.arity = f.__code__.co_argcount
 
     def generate_code(self, mmt_theory):
-        inner = self.inner
+        codomain = self.codomain
         arity = self.arity
         gap_name = self.gap_name
-        if inner is None or gap_name is None:
+        if gap_name is None: # codomain is None
             signature = mmt_lookup_signature(mmt_theory, self.mmt_name)
             if signature is not None:
                 domains, codomain = signature
                 arity = len(domains)
                 if self.arity is not None:
                     assert self.arity == arity
-                inner = all(domain == codomain for domain in domains)
-                if self.inner is not None:
-                    assert inner == self.inner
-        assert inner is not None
+                # TODO: cleanup this logic
+                if all(domain == codomain for domain in domains):
+                    codomain = "parent"
+                    assert self.codomain is None or codomain == self.codomain
         assert arity is not None
         assert gap_name is not None
-        if inner:
+        if codomain == "parent":
             def wrapper_method(self, *args):
                 return self.parent()(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
+        elif codomain == "self":
+            def wrapper_method(self, *args):
+                return self(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
+        elif codomain == "list_of_self":
+            def wrapper_method(self, *args):
+                return [self(x) for x in getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args])]
         else:
+            assert codomain is None
             def wrapper_method(self, *args):
                 return self._wrap(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
         wrapper_method.__name__ = self.__imfunc__.__name__
@@ -161,19 +168,19 @@ def generate_interface(source, target, mmt_theory):
             setattr(target, name, method.generate_code(mmt_theory))
 
 
-def mmt(mmt_name, variant=None, module_name=None, inner=None, gap_name=None):
+def semantic(mmt=None, variant=None, module_name=None, codomain=None, gap=None):
     def f(cls_or_function):
         # Temporarily wrap the object for later reuse
         if inspect.isclass(cls_or_function):
             cls_or_function = MMTWrapClass(cls_or_function,
-                                           mmt_name=mmt_name,
+                                           mmt_name=mmt,
                                            variant=variant)
         else:
             cls_or_function = MMTWrapMethod(cls_or_function,
-                                            mmt_name=mmt_name,
+                                            mmt_name=mmt,
                                             variant=variant,
-                                            inner=inner,
-                                            gap_name=gap_name)
+                                            codomain=codomain,
+                                            gap_name=gap)
 
         if module_name is not None:
             # Retrieve the actual Sage category
@@ -182,28 +189,50 @@ def mmt(mmt_name, variant=None, module_name=None, inner=None, gap_name=None):
             category = getattr(module, category_name)
 
             # Generate the interface by walking recursively through the tree
-            generate_interface(cls_or_function.cls, category, mmt_name)
+            generate_interface(cls_or_function.cls, category, mmt)
         return cls_or_function
     return f
 
+@semantic("Sets", module_name="sage.categories.sets_cat")
+class Sets:
+    class ParentMethods:
+        @semantic(mmt="", gap="IsFinite")
+        def is_finite(self):
+            pass
 
-@mmt("Magma", "additive", module_name="sage.categories.additive_magmas")
+        @semantic(mmt="", gap="Size")
+        def cardinality(self):
+            pass
+
+        @semantic(mmt="", gap="Representative", codomain="self")
+        def _an_element_(self):
+            pass
+
+        @semantic(mmt="", gap="Random", codomain="self")
+        def random_element(self):
+            pass
+
+    class Finite:
+        class ParentMethods:
+            @semantic(mmt="", gap="Random", codomain="list_of_self")
+            def list(self):
+                pass
+
+@semantic("Magma", "additive", module_name="sage.categories.additive_magmas")
 class AdditiveMagmas:
-
     class ElementMethods:
-
-        @mmt(u"∘", gap_name=r"\+", inner=False) #, operator="+")
+        @semantic(mmt=u"∘", gap=r"\+", codomain="parent") #, operator="+")
         @abstract_method
         def _add_(self, other):
             pass
 
-    @mmt("NeutralElement")
+    @semantic("NeutralElement")
     class AdditiveUnital:
         class ParentMethods:
             # Defined in NeutralElementLeft
             # - How to retrieve it?
-            # - How to detect that this is an inner method?
-            @mmt("neutral", gap_name="Zero", inner=True)
+            # - How to detect that this is a method into self?
+            @semantic(mmt="neutral", gap="Zero", codomain="self")
             @abstract_method
             def zero(self):
                 pass
@@ -212,7 +241,7 @@ class AdditiveMagmas:
             # def zero(self): return self(self.gap().Zero())
 
         class ElementMethods:
-            @mmt("-", gap_name=r"\-", inner=True)
+            @semantic(gap=r"\-", codomain="parent")
             @abstract_method
             def _sub_(self, other):
                 pass
@@ -221,10 +250,10 @@ class AdditiveMagmas:
             # def _sub_(self,other): return self(gap.Subtract(self.gap(), other.gap()))
 
 
-@mmt("Semigroups")
+@semantic(mmt="Semigroup")
 class AdditiveSemigroups:
     pass
 
-@mmt("Ring")
+@semantic(mmt="Ring")
 class Rings:
     pass

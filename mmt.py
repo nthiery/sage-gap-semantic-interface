@@ -101,7 +101,10 @@ class MMTWrapMethod(MMTWrap):
         self.arity = self.__imfunc__._f.__code__.co_argcount
 
     def generate_code(self, mmt_theory):
-        if self.inner is None or self.gap_name is None:
+        inner = self.inner
+        arity = self.arity
+        gap_name = self.gap_name
+        if inner is None or gap_name is None:
             signature = mmt_lookup_signature(mmt_theory, self.mmt_name)
             if signature is not None:
                 domains, codomain = signature
@@ -111,11 +114,9 @@ class MMTWrapMethod(MMTWrap):
                 inner = all(domain == codomain for domain in domains)
                 if self.inner is not None:
                     assert inner == self.inner
-            else:
-                inner = self.inner
-                gap_name = self.gap_name
-        assert self.inner is not None
-        assert self.arity is not None
+        assert inner is not None
+        assert arity is not None
+        assert gap_name is not None
         if inner:
             def wrapper_method(self, *args):
                 return self.parent()(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
@@ -191,7 +192,7 @@ class AdditiveMagmas:
 
     class ElementMethods:
 
-        @mmt(u"∘", gap_name=r"\+") #, operator="+")
+        @mmt(u"∘", gap_name=r"\+", inner=False) #, operator="+")
         @abstract_method
         def _add_(self, other):
             pass
@@ -211,7 +212,7 @@ class AdditiveMagmas:
             # def zero(self): return self(self.gap().Zero())
 
         class ElementMethods:
-            @mmt("-", inner=True, gap_name=r"\-")
+            @mmt("-", gap_name=r"\-", inner=True)
             @abstract_method
             def _sub_(self, other):
                 pass

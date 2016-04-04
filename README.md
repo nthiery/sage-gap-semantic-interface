@@ -130,6 +130,21 @@ systems when this has not yet been formalized elsewhere. Similarly,
 one could provide directly the signature information in case that is
 not yet modelled in MMT.
 
+### Difficulties
+
+In Sage and GAP (and most other systems with some category mechanism)
+we distinguish additive magma and multiplicative magma, duplicating
+all the information, code, etc. In MMT however, thanks to morphisms
+which allow to rename operations transparently, there is no such
+distinction: there are just Magmas.
+
+Hence, to actually map additive magmas in Sage to additive magmas in
+GAP (and map the corresponding methods), one need in the intermediate
+MMT step to keep an extra bit of information, namely whether the
+monoid is additive or multiplicative (or something else; think of the
+bracket operation of Lie algebras).
+
+
 ## Dependencies
 
 The following are required by the automatically generated interface

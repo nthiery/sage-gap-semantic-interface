@@ -339,10 +339,14 @@ from sage.libs.gap.element import GapElement
 
 import categories
 import sage.categories
-#monkey_patch(categories, sage.categories)
 import categories.objects
 import sage.categories.objects
 monkey_patch(categories.objects, sage.categories.objects)
+
+if False: # Whether to use the explicit GAP categories (in categories/*), or anotations (in mmt.py)
+    monkey_patch(categories, sage.categories)
+else:
+    import mmt
 
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run

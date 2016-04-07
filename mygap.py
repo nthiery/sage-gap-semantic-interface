@@ -352,8 +352,10 @@ else:
 # This is a temporary workaround to let some of the tests run
 import sage.libs.gap.gap_functions
 sage.libs.gap.gap_functions.common_gap_functions.extend(
-    (["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField", "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
-      r"\+",r"\-",
+    (["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField",
+      "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
+      "GeneratorsOfMonoid",
+      r"\+", r"\-", r"\*", r"\/"
   ]))
 
 

@@ -316,7 +316,6 @@ Misc TODO
 
 - Merge libgap / mygap
 - Merging the code into Sage
-- Support for iterators
 """
 
 import sys

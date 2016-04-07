@@ -126,6 +126,38 @@ class MMTWrap:
         self.mmt_name = mmt_name
         self.variant = variant
 
+def gap_handle(x):
+    """
+    Return a low-level libgap handle to the corresponding GAP object.
+
+    EXAMPLES::
+
+        sage: from mygap import mygap
+        sage: from mmt import gap_handle
+        sage: h = libgap.GF(3)
+        sage: F = mygap(h)
+        sage: gap_handle(F) is h
+        True
+        sage: l = gap_handle([1,2,F])
+        sage: l
+        [ 1, 2, GF(3) ]
+        sage: l[0] == 1
+        sage: l[2] == h
+        True
+
+    .. TODO::
+
+        Maybe we just want, for x a glorified hand, libgap(x) to
+        return the corresponding low level handle
+    """
+    from mygap import GAPObject
+    if isinstance(x, (list, tuple)):
+        return libgap([gap_handle(y) for y in x])
+    elif isinstance(x, GAPObject):
+        return x.gap()
+    else:
+        return libgap(x)
+
 class MMTWrapMethod(MMTWrap):
     """
 
@@ -170,17 +202,17 @@ class MMTWrapMethod(MMTWrap):
         assert gap_name is not None
         if codomain == "parent":
             def wrapper_method(self, *args):
-                return self.parent()(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
+                return self.parent()(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
         elif codomain == "self":
             def wrapper_method(self, *args):
-                return self(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
+                return self(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
         elif codomain == "list_of_self":
             def wrapper_method(self, *args):
-                return [self(x) for x in getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args])]
+                return [self(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))]
         else:
             assert codomain is None
             def wrapper_method(self, *args):
-                return self._wrap(getattr(libgap, gap_name)(*[arg.gap() for arg in (self,)+args]))
+                return self._wrap(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
         wrapper_method.__name__ = self.__imfunc__.__name__
         return wrapper_method
 

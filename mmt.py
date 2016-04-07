@@ -234,7 +234,7 @@ def semantic(mmt=None, variant=None, module_name=None, codomain=None, gap=None):
         return cls_or_function
     return f
 
-@semantic("Sets", module_name="sage.categories.sets_cat")
+@semantic(mmt="Set", module_name="sage.categories.sets_cat")
 class Sets:
     class ParentMethods:
         @semantic(mmt="", gap="IsFinite")
@@ -253,11 +253,34 @@ class Sets:
         def random_element(self):
             pass
 
+    @semantic(mmt="TODO")
     class Finite:
         class ParentMethods:
-            @semantic(mmt="", gap="Random", codomain="list_of_self")
+            @semantic(mmt="", gap="List", codomain="list_of_self")
             def list(self):
                 pass
+
+@semantic(mmt="TODO", module_name="sage.categories.enumerated_sets")
+class EnumeratedSets:
+    class GAP(CategoryWithAxiom):
+        class ParentMethods:
+            def __iter__(self):
+                """
+                EXAMPLES::
+
+                    sage: sys.path.insert(0, "./")
+                    sage: from mygap import mygap
+                    sage: F = mygap.FiniteField(3)
+                    sage: for x in F: # indirect doctest
+                    ....:     print x
+                    0*Z(3)
+                    Z(3)^0
+                    Z(3)
+
+                    sage: for x in F: # indirect doctest
+                    ....:     assert x.parent() is F
+                """
+                return itertools.imap(self, self._wrap(self.gap().Iterator()))
 
 @semantic("Magma", "additive", module_name="sage.categories.additive_magmas")
 class AdditiveMagmas:

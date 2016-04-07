@@ -18,10 +18,12 @@ class Semigroups:
 
                 EXAMPLES::
 
-                    sage: SL(1, 17).is_abelian()
-                    True
-                    sage: SL(2, 17).is_abelian()
-                    False
+                    sage: SL(1, 17).semigroup_generators()
+                    Family ([1],)
+                    sage: SL(2, 17).semigroup_generators()
+                    Family ([3 0]
+                    [0 6], [16  1]
+                    [16  0])
                 """
                 return tuple(self(handle) for handle in self.gap().GeneratorsOfSemigroup())
 
@@ -83,4 +85,3 @@ class Semigroups:
                 class ParentMethods:
                     def isomorphism_transformation_monoid(self):
                         return self._wrap(self.gap().IsomorphismTransformationMonoid())
-

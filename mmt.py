@@ -237,26 +237,26 @@ def semantic(mmt=None, variant=None, module_name=None, codomain=None, gap=None):
 @semantic(mmt="Set", module_name="sage.categories.sets_cat")
 class Sets:
     class ParentMethods:
-        @semantic(mmt="", gap="IsFinite")
+        @semantic(gap="IsFinite")
         def is_finite(self):
             pass
 
-        @semantic(mmt="", gap="Size")
+        @semantic(gap="Size")
         def cardinality(self):
             pass
 
-        @semantic(mmt="", gap="Representative", codomain="self")
+        @semantic(gap="Representative", codomain="self")
         def _an_element_(self):
             pass
 
-        @semantic(mmt="", gap="Random", codomain="self")
+        @semantic(gap="Random", codomain="self")
         def random_element(self):
             pass
 
     @semantic(mmt="TODO")
     class Finite:
         class ParentMethods:
-            @semantic(mmt="", gap="List", codomain="list_of_self")
+            @semantic(gap="List", codomain="list_of_self")
             def list(self):
                 pass
 
@@ -282,7 +282,7 @@ class EnumeratedSets:
                 """
                 return itertools.imap(self, self._wrap(self.gap().Iterator()))
 
-@semantic("Magma", "additive", module_name="sage.categories.additive_magmas")
+@semantic(mmt="Magma", variant="additive", module_name="sage.categories.additive_magmas")
 class AdditiveMagmas:
     class ElementMethods:
         @semantic(mmt=u"∘", gap=r"\+", codomain="parent") #, operator="+")

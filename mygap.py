@@ -1,5 +1,5 @@
 """
-``Semantic aware`` sage interface to GAP
+"Semantic aware" Sage interface to GAP
 
 This module, built on top of libgap, enriches the handles to GAP
 objects by retrieving their mathematical properties from GAP, and

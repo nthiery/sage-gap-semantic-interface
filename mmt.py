@@ -39,6 +39,17 @@ We would want to use F.random_element from ``Sets.GAP``, not :class:`FiniteEnume
         sage: F.random_element.__module__
         'sage.categories.finite_enumerated_sets'
 
+We need a way (input syntax and datastructure) to represent various
+types for the codomain (either passed to @semantic or recovered from
+mmt). Examples:
+
+    codomain=bool
+    codomain=self
+    codomain=parent
+    codomain=tuple(self)
+    codomain=list(self)
+
+
 
 >> namespace = XXXXX("u'http://latin.omdoc.org/math")
 >> M = namespace.get_theory("Monoid")
@@ -62,7 +73,6 @@ True
 Z
 >> f.argument_types()
 [X,Y]
-
 """
 
 

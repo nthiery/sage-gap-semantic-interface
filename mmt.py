@@ -370,6 +370,26 @@ class Magmas:
         def _mul_(self, other):
             pass
 
+    @semantic("NeutralElement")
+    class Unital:
+        class ParentMethods:
+            # Defined in NeutralElementLeft
+            # - How to retrieve it?
+            # - How to detect that this is a method into self?
+            @semantic(mmt="neutral", gap="One", codomain="self")
+            @abstract_method
+            def one(self):
+                # Generates automatically in the XXX.GAP category
+                # def zero(self): return self(self.gap().One())
+                pass
+
+        class ElementMethods:
+
+            @semantic(mmt="inverse", gap="Inverse", codomain="parent")
+            @abstract_method
+            def __invert__(self): # TODO: deal with "fail"
+                pass
+
 @semantic(mmt="Semigroup", variant="additive", module_name="sage.categories.additive_semigroups")
 class AdditiveSemigroups:
     pass

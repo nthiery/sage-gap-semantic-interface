@@ -15,7 +15,7 @@ Create a Lie algebra::
 Check the category of our gap Lie algebra::
 
     sage: L.category()
-    Category of gap lie algebras over rings
+    Category of g a p lie algebras over rings
 
 Compute the Lie bracket::
 

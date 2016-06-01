@@ -12,10 +12,11 @@ class Magmas:
 
                 EXAMPLES::
 
+                    sage: libgap.LoadPackage("semigroups")
                     sage: sys.path.insert(0, "./")
                     sage: from mygap import mygap
-                    sage: G = mygap.FreeSemigroup(3)
-                    sage: s1, s2, s3 = G.semigroup_generators()
+                    sage: G = mygap.FreeGroup(3)
+                    sage: s1, s2, s3 = G.group_generators()
                     sage: s1 * s3 * s2
                     s1*s3*s2
                 """

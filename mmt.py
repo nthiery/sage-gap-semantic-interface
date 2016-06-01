@@ -35,7 +35,7 @@ We would want to use F.random_element from ``Sets.GAP``, not :class:`FiniteEnume
         sage: F = mygap.FiniteField(3); F
         GF(3)
         sage: F.category()
-        Category of finite gap fields
+        Category of finite g a p fields
         sage: F.random_element.__module__
         'sage.categories.finite_enumerated_sets'
 
@@ -80,6 +80,7 @@ Z
 
 import inspect
 import importlib
+import itertools
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
 from sage.categories.category import Category
@@ -143,6 +144,7 @@ def gap_handle(x):
         sage: l
         [ 1, 2, GF(3) ]
         sage: l[0] == 1
+        True
         sage: l[2] == h
         True
 
@@ -210,6 +212,10 @@ class MMTWrapMethod(MMTWrap):
         elif codomain == "list_of_self":
             def wrapper_method(self, *args):
                 return [self(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))]
+        elif codomain == "iter_of_self":
+            def wrapper_method(self, *args):
+                from mygap import GAPIterator
+                return itertools.imap(self, GAPIterator(getattr(libgap, gap_name)(*gap_handle((self,)+args))))
         else:
             assert codomain is None
             def wrapper_method(self, *args):
@@ -305,25 +311,10 @@ class Sets:
 
 @semantic(mmt="TODO", module_name="sage.categories.enumerated_sets")
 class EnumeratedSets:
-    class GAP(CategoryWithAxiom):
-        class ParentMethods:
-            def __iter__(self):
-                """
-                EXAMPLES::
-
-                    sage: sys.path.insert(0, "./")
-                    sage: from mygap import mygap
-                    sage: F = mygap.FiniteField(3)
-                    sage: for x in F: # indirect doctest
-                    ....:     print x
-                    0*Z(3)
-                    Z(3)^0
-                    Z(3)
-
-                    sage: for x in F: # indirect doctest
-                    ....:     assert x.parent() is F
-                """
-                return itertools.imap(self, self._wrap(self.gap().Iterator()))
+    class ParentMethods:
+        @semantic(gap="Iterator", codomain="iter_of_self")
+        def __iter__(self):
+            pass
 
 @semantic(mmt="Magma", variant="additive", module_name="sage.categories.additive_magmas")
 class AdditiveMagmas:

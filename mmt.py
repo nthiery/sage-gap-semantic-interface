@@ -347,7 +347,7 @@ class AdditiveMagmas:
 
             @semantic(gap="AdditiveInverse", codomain="parent")
             @abstract_method
-            def _neg_(self):
+            def __neg__(self):
                 # Generates automatically
                 # def _neg_(self): return self.parent()(self.gap().AdditiveInverse())
                 pass

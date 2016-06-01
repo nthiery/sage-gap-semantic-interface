@@ -353,7 +353,7 @@ import sage.libs.gap.gap_functions
 sage.libs.gap.gap_functions.common_gap_functions.extend(
     (["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField",
       "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
-      "GeneratorsOfMonoid",
+      "GeneratorsOfMonoid", "GeneratorsOfSemigroup", "AdditiveInverse",
       r"\+", r"\-", r"\*", r"\/"
   ]))
 

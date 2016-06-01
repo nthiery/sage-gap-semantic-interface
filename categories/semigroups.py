@@ -18,9 +18,9 @@ class Semigroups:
 
                 EXAMPLES::
 
-                    sage: SL(1, 17).semigroup_generators() # optional -- requires GAP package semigroups
+                    sage: SL(1, 17).semigroup_generators()
                     Family ([1],)
-                    sage: SL(2, 17).semigroup_generators() # optional -- requires GAP package semigroups
+                    sage: SL(2, 17).semigroup_generators()
                     Family ([3 0]
                     [0 6], [16  1]
                     [16  0])

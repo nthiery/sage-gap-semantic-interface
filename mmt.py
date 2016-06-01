@@ -44,6 +44,7 @@ types for the codomain (either passed to @semantic or recovered from
 mmt). Examples:
 
     codomain=bool
+    codomain=sage  -> call .sage
     codomain=self
     codomain=parent
     codomain=tuple(self)

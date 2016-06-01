@@ -19,7 +19,7 @@ class Objects:
                 sage: from sage.categories.sets_cat import Sets
 
                 sage: Sets().GAP()
-                Category of gap sets
+                Category of g a p sets
 
             TESTS::
 

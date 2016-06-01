@@ -354,8 +354,6 @@ class AdditiveMagmas:
                 # def _sub_(self,other): return self(gap.Subtract(self.gap(), other.gap()))
                 pass
 
-    class AdditiveInverse:
-        class ElementMethods:
             @semantic(gap="AdditiveInverse", codomain="parent")
             @abstract_method
             def _neg_(self):

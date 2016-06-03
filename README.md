@@ -76,7 +76,8 @@ developers and users as the need for more adapter methods arises.
 ### Scaling to multisystem interfaces?
 
 A second stage was initiated during the
-[Knowledge representation in mathematical software and databases workshop](http://opendreamkit.org/2015/12/08/WP6StAndrewsMeeting/)
+[Knowledge representation in mathematical software and databases
+workshop](http://opendreamkit.org/2015/12/08/WP6StAndrewsMeeting/)
 organized at the University of St Andrews, St Andrews, 25th-27th January, 2016.
 
 The approach described earlier works well for implementing an
@@ -150,18 +151,16 @@ bracket operation of Lie algebras).
 The following are required by the automatically generated interface
 using MMT.
 
-sudo apt-get install libxml2-dev libxslt1-dev
-sage -pip install lxml
-sage -python setup.py install
+    sudo apt-get install libxml2-dev libxslt1-dev
+    sage -pip install lxml
+    sage -python setup.py install
 
 # Download all the MMT stuff
 
-mkdir MMT
-cd MMT
-wget https://github.com/KWARC/MMT/raw/gh-pages/deploy/mmt.jar
-git clone git@gl.mathhub.info:MMT/LATIN.git
-git clone git@gl.mathhub.info:MMT/urtheories.git
-git clone git@gl.mathhub.info:MMT/examples.git
-
-
-git clone git@gl.mathhub.info:ODK/MMTPy
+    mkdir MMT
+    cd MMT
+    wget https://github.com/KWARC/MMT/raw/gh-pages/deploy/mmt.jar
+    git clone git@gl.mathhub.info:MMT/LATIN.git
+    git clone git@gl.mathhub.info:MMT/urtheories.git
+    git clone git@gl.mathhub.info:MMT/examples.git
+    git clone git@gl.mathhub.info:ODK/MMTPy

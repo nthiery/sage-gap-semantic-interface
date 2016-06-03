@@ -75,15 +75,14 @@ Z
 >> f.argument_types()
 [X,Y]
 """
-
-
-
 import inspect
 import importlib
 import itertools
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
+from sage.misc.cachefunc import cached_method
 from sage.categories.category import Category
+from sage.categories.category_types import Category_over_base_ring
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.libs.gap.libgap import libgap
 
@@ -468,3 +467,68 @@ class Groups:
 @semantic(mmt="Ring")
 class Rings:
     pass
+
+@semantic(mmt="LieAlgebra")
+class LieAlgebras(Category_over_base_ring):
+
+    r"""
+    A class for Lie algebras.
+
+    The implementation is as handles to GAP objects.
+    """
+    def super_categories(self):
+        """
+        EXAMPLES::
+
+            sage: LieAlgebras(Rings()).super_categories()
+            [Category of magmatic algebras over rings]
+        """
+        return [MagmaticAlgebras(self.base_ring())]
+
+    def example(self):
+        r"""
+        Return an example of Lie algebra.
+
+        EXAMPLE::
+
+            sage: LieAlgebras(Rings()).GAP().example()
+            <Lie algebra over Rationals, with 2 generators>
+        """
+        from mygap import mygap
+        from sage.matrix.constructor import matrix
+        from sage.rings.rational_field import QQ
+        a = matrix([[0, 1],
+                    [0, 0]])
+        b = matrix([[0, 0],
+                    [1, 0]])
+        return mygap.LieAlgebra( QQ, [a, b] )
+
+
+    class ParentMethods:
+
+        @semantic(mmt="TODO", gap="GeneratorsOfAlgebra", codomain="list_of_self") # TODO: tuple_of_self
+        def lie_algebra_generators(self):
+            r"""
+            Return generators for this Lie algebra.
+
+            OUTPUT:
+
+                A tuple of elements of ``self``
+
+            EXAMPLES::
+
+                sage: L = LieAlgebras(Rings()).GAP().example()
+                sage: a, b = L.lie_algebra_generators()
+                sage: a, b
+                (LieObject( [ [ 0, 1 ],
+                              [ 0, 0 ] ] ),
+                 LieObject( [ [ 0, 0 ],
+                              [ 1, 0 ] ] ))
+            """
+            # return tuple(self(handle) for handle in self.gap().GeneratorsOfAlgebra())
+            pass
+
+    class ElementMethods:
+
+        pass
+

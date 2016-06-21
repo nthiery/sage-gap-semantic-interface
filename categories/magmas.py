@@ -12,7 +12,6 @@ class Magmas:
 
                 EXAMPLES::
 
-                    sage: sys.path.insert(0, "./")
                     sage: from mygap import mygap
                     sage: G = mygap.FreeGroup(3)
                     sage: f1, f2, f3 = G.group_generators()
@@ -34,7 +33,6 @@ class Magmas:
 
                     EXAMPLES::
 
-                        sage: sys.path.insert(0, "./")
                         sage: from mygap import mygap
                         sage: G = mygap.FreeGroup("a")
                         sage: a, = G.group_generators()

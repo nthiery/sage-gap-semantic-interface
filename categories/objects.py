@@ -14,7 +14,6 @@ class Objects:
 
             EXAMPLES::
 
-                sage: sys.path.insert(0, "./")   # TODO: remove those three lines before integrating in Sage
                 sage: from mygap import mygap
                 sage: from sage.categories.sets_cat import Sets
 

@@ -3,7 +3,6 @@
 """
 EXAMPLES::
 
-    sage: sys.path.insert(0, "./")
     sage: from mygap import mygap
     sage: mygap.SymmetricGroup(3).an_element()
     (1,2,3)
@@ -76,15 +75,14 @@ Z
 [X,Y]
 """
 import inspect
-import importlib
 import itertools
+from recursive_monkey_patch import monkey_patch
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
-from sage.misc.cachefunc import cached_method
-from sage.categories.category import Category
 from sage.categories.category_types import Category_over_base_ring
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.libs.gap.libgap import libgap
+import sage.categories
 
 def mmt_lookup_signature(mmt_theory, mmt_name):
     """
@@ -180,7 +178,6 @@ class MMTWrapMethod(MMTWrap):
         self.__imfunc__= f
         self.gap_name = gap_name
         self.codomain = codomain
-        f = self.__imfunc__
         if isinstance(f, AbstractMethod):
             f = f._f
         self.arity = f.__code__.co_argcount
@@ -215,6 +212,9 @@ class MMTWrapMethod(MMTWrap):
             def wrapper_method(self, *args):
                 from mygap import GAPIterator
                 return itertools.imap(self, GAPIterator(getattr(libgap, gap_name)(*gap_handle((self,)+args))))
+        elif codomain == "sage":
+            def wrapper_method(self, *args):
+                return getattr(libgap, gap_name)(*gap_handle((self,)+args)).sage()
         else:
             assert codomain is None
             def wrapper_method(self, *args):
@@ -222,82 +222,74 @@ class MMTWrapMethod(MMTWrap):
         wrapper_method.__name__ = self.__imfunc__.__name__
         return wrapper_method
 
-class MMTWrapClass(MMTWrap):
-    def __init__(self, cls, mmt_name, **options):
-        MMTWrap.__init__(self, mmt_name, **options)
-        self.cls = cls
+def generate_interface(cls, mmt_theory):
+    """
+    INPUT:
+    - ``cls`` -- the class of a cls
+    - ``mmt_theory`` -- an mmt theory
+    """
+    # Fetch cls.GAP, creating it if needed
+    try:
+        # Can't use cls.GAP because of the binding behavior
+        GAP_cls = cls.__dict__['GAP']
+    except KeyError:
+        GAP_cls = type(cls.__name__+".GAP", (CategoryWithAxiom,), {})
+        GAP_cls.__module__ = cls.__module__
+        setattr(cls, 'GAP', GAP_cls)
 
-def generate_interface(source, target, mmt_theory):
-    """ INPUT: two classes """
-    if issubclass(target, Category):
-        GAP_category = type(target.__name__+".GAP", (CategoryWithAxiom,), {})
-        GAP_category.__module__ = target.__module__
-        setattr(target, 'GAP', GAP_category)
-        #assert isinstance(source, MMTWrapClass)
-        for name, subsource in source.__dict__.items():
-            # Handle special cases
-            if name in ["ParentMethods", "ElementMethods", "MorphismMethods", "SubcategoryMethods"]:
-                subtarget = type(name, (), {})
-                setattr(GAP_category, name, subtarget)
-                generate_interface(subsource, subtarget, mmt_theory)
-
-            # Recurse into nested categories
-            if isinstance(subsource, MMTWrap):
-                assert isinstance(subsource, MMTWrapClass)
-                assert name in target.__dict__
-                subtarget = target.__dict__[name]
-                assert issubclass(subtarget, CategoryWithAxiom)
-                generate_interface(subsource.cls, subtarget, subsource.mmt_name)
-    else:
-        # source and target are plain bags of methods
-        for (name, method) in source.__dict__.items():
-            if name in {'__module__', '__doc__'}:
+    for name in ["ParentMethods", "ElementMethods", "MorphismMethods", "SubcategoryMethods"]:
+        try:
+            source = getattr(cls, name)
+        except AttributeError:
+            continue
+        # Fetch the corresponding class in cls.GAP, creating it if needed
+        try:
+            target = getattr(GAP_cls, name)
+        except AttributeError:
+            target = type(name, (), {})
+            setattr(GAP_cls, name, target)
+        for (key, method) in source.__dict__.items():
+            if key in {'__module__', '__doc__'}:
                 continue
             assert isinstance(method, MMTWrapMethod)
-            setattr(target, name, method.generate_code(mmt_theory))
+            setattr(target, key, method.generate_code(mmt_theory))
+            setattr(source, key, method.__imfunc__)
 
 
 def semantic(mmt=None, variant=None, module_name=None, codomain=None, gap=None):
     def f(cls_or_function):
-        # Temporarily wrap the object for later reuse
         if inspect.isclass(cls_or_function):
-            cls_or_function = MMTWrapClass(cls_or_function,
-                                           mmt_name=mmt,
-                                           variant=variant)
+            cls = cls_or_function
+            generate_interface(cls, mmt)
+            return cls
         else:
-            cls_or_function = MMTWrapMethod(cls_or_function,
-                                            mmt_name=mmt,
-                                            variant=variant,
-                                            codomain=codomain,
-                                            gap_name=gap)
-
-        if module_name is not None:
-            # Retrieve the actual Sage category
-            category_name = cls_or_function.cls.__name__
-            module = importlib.import_module(module_name)
-            category = getattr(module, category_name)
-
-            # Generate the interface by walking recursively through the tree
-            generate_interface(cls_or_function.cls, category, mmt)
-        return cls_or_function
+            return MMTWrapMethod(cls_or_function,
+                                 mmt_name=mmt,
+                                 variant=variant,
+                                 codomain=codomain,
+                                 gap_name=gap)
     return f
 
-@semantic(mmt="Set", module_name="sage.categories.sets_cat")
+@semantic(mmt="Set")
 class Sets:
     class ParentMethods:
-        @semantic(gap="IsFinite")
+        @semantic(gap="IsFinite", codomain="sage")
+        @abstract_method
         def is_finite(self):
             pass
 
-        @semantic(gap="Size")
+        @semantic(gap="Size", codomain="sage")
+        @abstract_method
         def cardinality(self):
             pass
 
         @semantic(gap="Representative", codomain="self")
+        @abstract_method
         def _an_element_(self):
             pass
 
         @semantic(gap="Random", codomain="self")
+        @abstract_method
         def random_element(self):
             pass
 
@@ -305,17 +297,21 @@ class Sets:
     class Finite:
         class ParentMethods:
             @semantic(gap="List", codomain="list_of_self")
+            @abstract_method
             def list(self):
                 pass
+monkey_patch(Sets, sage.categories.sets_cat.Sets)
 
-@semantic(mmt="TODO", module_name="sage.categories.enumerated_sets")
+@semantic(mmt="TODO")
 class EnumeratedSets:
     class ParentMethods:
         @semantic(gap="Iterator", codomain="iter_of_self")
+        @abstract_method
         def __iter__(self):
             pass
+monkey_patch(EnumeratedSets, sage.categories.enumerated_sets.EnumeratedSets)
 
-@semantic(mmt="Magma", variant="additive", module_name="sage.categories.additive_magmas")
+@semantic(mmt="Magma", variant="additive")
 class AdditiveMagmas:
     class ElementMethods:
         @semantic(mmt=u"∘", gap=r"\+", codomain="parent") #, operator="+")
@@ -350,6 +346,7 @@ class AdditiveMagmas:
                 # Generates automatically
                 # def _neg_(self): return self.parent()(self.gap().AdditiveInverse())
                 pass
+monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 
 @semantic(mmt="Magma", variant="multiplicative", module_name="sage.categories.magmas")
 class Magmas:
@@ -378,6 +375,7 @@ class Magmas:
             @abstract_method
             def __invert__(self): # TODO: deal with "fail"
                 pass
+monkey_patch(Magmas, sage.categories.magmas.Magmas)
 
 @semantic(mmt="Semigroup", variant="additive", module_name="sage.categories.additive_semigroups")
 class AdditiveSemigroups:
@@ -387,22 +385,27 @@ class AdditiveSemigroups:
 class Semigroups:
     class ParentMethods:
         @semantic(gap="GeneratorsOfSemigroup", codomain="list_of_self") # TODO: tuple_of_self
+        @abstract_method
         def semigroup_generators(self):
             pass
 
         @semantic(gap="\/")
+        @abstract_method
         def __truediv__(self, relations):
             pass
 
         @semantic(gap="IsLTrivial")
+        @abstract_method
         def is_l_trivial(self):
             pass
 
         @semantic(gap="IsRTrivial")
+        @abstract_method
         def is_r_trivial(self):
             pass
 
         @semantic(gap="IsDTrivial")
+        @abstract_method
         def is_d_trivial(self):
             pass
 
@@ -410,26 +413,32 @@ class Semigroups:
     class Finite:
         class ParentMethods:
             @semantic(gap="JClasses")
+            @abstract_method
             def j_classes(self):
                 pass
 
             @semantic(gap="LClasses")
+            @abstract_method
             def l_classes(self):
                 pass
 
             @semantic(gap="RClasses")
+            @abstract_method
             def r_classes(self):
                 pass
 
             @semantic(gap="StructureDescriptionMaximalSubgroups")
+            @abstract_method
             def structure_description_maximal_subgroups(self):
                 pass
 
             @semantic(gap="StructureDescriptionSchutzenbergerGroups")
+            @abstract_method
             def structure_description_schutzenberger_groups(self):
                 pass
 
             @semantic(gap="IsomorphismTransformationSemigroup")
+            @abstract_method
             def isomorphism_transformation_semigroup(self):
                 pass
 
@@ -437,6 +446,7 @@ class Semigroups:
     class Unital:
         class ParentMethods:
             @semantic(gap="GeneratorsOfMonoid", codomain="list_of_self") # TODO: tuple_of_self
+            @abstract_method
             def monoid_generators(self):
                 pass
 
@@ -444,8 +454,10 @@ class Semigroups:
     class Finite:
         class ParentMethods:
             @semantic(gap="IsomorphismTransformationMonoid")
+            @abstract_method
             def isomorphism_transformation_monoid(self):
                 pass
+monkey_patch(Semigroups, sage.categories.semigroups.Semigroups)
 
 @semantic(mmt="Group", variant="multiplicative", module_name="sage.categories.groups")
 class Groups:
@@ -453,21 +465,22 @@ class Groups:
     class ParentMethods:
 
         @semantic(gap="IsAbelian")
+        @abstract_method
         def is_abelian(self):
             pass
 
         @semantic(gap="GeneratorsOfGroup", codomain="list_of_self") # TODO: tuple_of_self
+        @abstract_method
         def group_generators(self):
             pass
 
         @semantic(gap="\/")
+        @abstract_method
         def __truediv__(self, relators):
             pass
+monkey_patch(Groups, sage.categories.groups.Groups)
 
-@semantic(mmt="Ring")
-class Rings:
-    pass
-
+from sage.categories.magmatic_algebras import MagmaticAlgebras
 @semantic(mmt="LieAlgebra")
 class LieAlgebras(Category_over_base_ring):
 
@@ -480,33 +493,16 @@ class LieAlgebras(Category_over_base_ring):
         """
         EXAMPLES::
 
+            sage: from mmt import LieAlgebras
             sage: LieAlgebras(Rings()).super_categories()
             [Category of magmatic algebras over rings]
         """
         return [MagmaticAlgebras(self.base_ring())]
 
-    def example(self):
-        r"""
-        Return an example of Lie algebra.
-
-        EXAMPLE::
-
-            sage: LieAlgebras(Rings()).GAP().example()
-            <Lie algebra over Rationals, with 2 generators>
-        """
-        from mygap import mygap
-        from sage.matrix.constructor import matrix
-        from sage.rings.rational_field import QQ
-        a = matrix([[0, 1],
-                    [0, 0]])
-        b = matrix([[0, 0],
-                    [1, 0]])
-        return mygap.LieAlgebra( QQ, [a, b] )
-
-
     class ParentMethods:
 
         @semantic(mmt="TODO", gap="GeneratorsOfAlgebra", codomain="list_of_self") # TODO: tuple_of_self
+        @abstract_method
         def lie_algebra_generators(self):
             r"""
             Return generators for this Lie algebra.
@@ -517,6 +513,7 @@ class LieAlgebras(Category_over_base_ring):
 
             EXAMPLES::
 
+                sage: from mmt import LieAlgebras
                 sage: L = LieAlgebras(Rings()).GAP().example()
                 sage: a, b = L.lie_algebra_generators()
                 sage: a, b
@@ -529,6 +526,26 @@ class LieAlgebras(Category_over_base_ring):
             pass
 
     class ElementMethods:
-
         pass
+
+    class GAP(CategoryWithAxiom):
+        def example(self):
+            r"""
+            Return an example of Lie algebra.
+
+            EXAMPLE::
+
+                sage: from mmt import LieAlgebras
+                sage: LieAlgebras(Rings()).GAP().example()
+                <Lie algebra over Rationals, with 2 generators>
+            """
+            from mygap import mygap
+            from sage.matrix.constructor import matrix
+            from sage.rings.rational_field import QQ
+            a = matrix([[0, 1],
+                        [0, 0]])
+            b = matrix([[0, 0],
+                        [1, 0]])
+            return mygap.LieAlgebra( QQ, [a, b] )
+
 

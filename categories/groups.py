@@ -57,7 +57,6 @@ class Groups:
                 We define `ZZ^2` as a quotient of the free group
                 on two generators::
 
-                    sage: sys.path.insert(0, "./")
                     sage: from mygap import mygap
                     sage: F = mygap.FreeGroup("a", "b")
                     sage: a, b = F.group_generators()

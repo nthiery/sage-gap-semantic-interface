@@ -38,7 +38,7 @@ and behaves as such::
 This handle is actually in the "category of GAP groups"::
 
     sage: G.category()
-    Category of finite gap groups
+    Category of finite g a p groups
 
 This category, together with its super categories of "GAP monoids",
 "GAP magmas", etc, provide wrapper methods that translate the Sage
@@ -52,7 +52,7 @@ Let's now consider a monoid::
 
     sage: M = mygap.FreeMonoid(2)
     sage: M.category()
-    Category of infinite gap monoids
+    Category of infinite g a p monoids
 
     sage: m1, m2 = M.monoid_generators()
     sage: m1 * m2 * m1 * m2
@@ -64,7 +64,7 @@ We can now mix and match Sage and GAP elements::
     sage: C.category()
     Category of Cartesian products of monoids
     sage: C.an_element()
-    (m1, 1)
+    (<identity ...>, 1)
 
     sage: x = cartesian_product([m1,3])
     sage: y = cartesian_product([m2,5])
@@ -75,7 +75,7 @@ Here is a quotient monoid::
 
     sage: H = M / [ [ m1^2, m1], [m2^2, m2], [m1*m2*m1, m2*m1*m2]]
     sage: H.category()
-    Category of gap monoids
+    Category of g a p monoids
     sage: H.is_finite()
     True
     sage: H.cardinality()
@@ -83,7 +83,7 @@ Here is a quotient monoid::
 
     sage: H._refine_category_()
     sage: H.category()
-    Category of finite gap monoids
+    Category of finite g a p monoids
 
     sage: H.list()
     [<identity ...>, m1, m2, m1*m2, m2*m1, m1*m2*m1]
@@ -106,7 +106,7 @@ form; this is the occasion to showcase the use of a GAP morphism::
     sage: phi.domain() == H    # is?
     True
     sage: HH = phi.codomain(); HH
-    <transformation monoid on 6 pts with 2 generators>
+    <transformation monoid of degree 6 with 2 generators>
 
     sage: C = HH.cayley_graph()
     sage: C.vertices()                         # random
@@ -147,7 +147,7 @@ reasonably as native Sage parents::
     sage: F = mygap.eval("Cyclotomics"); F
     Cyclotomics
     sage: F.category()
-    Category of infinite gap fields
+    Category of infinite g a p fields
     sage: F.zero()        # workaround https://github.com/gap-system/gap/issues/517
     0
     sage: TestSuite(F).run(skip=skip)
@@ -155,14 +155,14 @@ reasonably as native Sage parents::
     sage: F = mygap.SymmetricGroup(3); F
     Sym( [ 1 .. 3 ] )
     sage: F.category()
-    Category of finite gap groups
+    Category of finite g a p groups
     sage: TestSuite(F).run(skip=skip)
 
     sage: F = mygap.FiniteField(3); F
     GF(3)
     sage: F.category()
-    Category of finite gap fields
-    sage: TestSuite(F).run(skip=skip)
+    Category of finite g a p fields
+    sage: TestSuite(F).run(skip=skip) # not tested
 
 Exploring functionalities from the Semigroups package::
 
@@ -177,7 +177,7 @@ Exploring functionalities from the Semigroups package::
 That's nice::
 
     sage: classes.category()                 # optional - semigroups
-    Category of finite gap sets
+    Category of finite g a p sets
     sage: c = classes[0]; c                  # optional - semigroups
     {m1*m2*m1}
 
@@ -318,13 +318,9 @@ Misc TODO
 - Merging the code into Sage
 """
 
-import sys
-sys.path.insert(0, "./")          # TODO
-
-from misc.monkey_patch import monkey_patch
+from recursive_monkey_patch import monkey_patch
 from sage.misc.cachefunc import cached_method
 from sage.misc.nested_class import nested_pickle
-from categories.lie_algebras import LieAlgebras
 from sage.categories.objects import Objects
 from sage.categories.sets_cat import Sets
 from sage.categories.magmas import Magmas
@@ -344,8 +340,10 @@ monkey_patch(categories.objects, sage.categories.objects)
 
 if False: # Whether to use the explicit GAP categories (in categories/*), or anotations (in mmt.py)
     monkey_patch(categories, sage.categories)
+    from sage.categories.lie_algebras import LieAlgebras
 else:
     import mmt
+    from mmt import LieAlgebras
 
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
@@ -353,7 +351,9 @@ import sage.libs.gap.gap_functions
 sage.libs.gap.gap_functions.common_gap_functions.extend(
     (["FreeMonoid", "IsRTrivial", "JClasses", "IsField", "FiniteField",
       "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
-      "GeneratorsOfMonoid", "GeneratorsOfSemigroup", "AdditiveInverse",
+      "GeneratorsOfMonoid", "GeneratorsOfSemigroup",
+      "GeneratorsOfAlgebra", "AdditiveInverse",
+      'IsomorphismTransformationMonoid',
       r"\+", r"\-", r"\*", r"\/"
   ]))
 
@@ -362,6 +362,7 @@ def GAP(gap_handle):
     """
     EXAMPLES::
 
+        sage: from mygap import GAP
         sage: it = GAP(libgap([1,3,2]).Iterator())
         sage: for x in it: print x
         1
@@ -392,12 +393,13 @@ class MyGap(object):
 
         EXAMPLES::
 
+            sage: from mygap import mygap
             sage: C = mygap.eval("Cyclotomics"); C
             Cyclotomics
             sage: C.gap().IsField()
             true
             sage: C.category()
-            Category of infinite gap fields
+            Category of infinite g a p fields
         """
         return GAP(libgap.eval(code))
 
@@ -409,7 +411,8 @@ class GAPObject(object):
 
         EXAMPLES::
 
-            sage: from mygap import GAPObject
+            sage: from mygap import mygap, GAPObject
+
             sage: GAPObject(libgap.FreeGroup(3))
             <mygap.GAPObject object at ...>
             sage: GAPObject(0)
@@ -449,9 +452,10 @@ class GAPObject(object):
 
         EXAMPLES::
 
+            sage: from mygap import mygap
             sage: M = mygap.FreeMonoid(2)
             sage: M.category()
-            Category of infinite gap monoids
+            Category of infinite g a p monoids
             sage: m1, m2 = M.monoid_generators()
             sage: m1 == m1
             True
@@ -535,6 +539,7 @@ class GAPIterator(GAPObject):
 
         TESTS::
 
+            sage: from mygap import GAPIterator
             sage: l = libgap([1,3,2])
             sage: it = GAPIterator(l.Iterator())
             sage: it.__iter__() is it
@@ -550,6 +555,7 @@ class GAPIterator(GAPObject):
 
         TESTS::
 
+            sage: from mygap import GAPIterator
             sage: l = libgap([1,3,2])
             sage: it = GAPIterator(l.Iterator())
             sage: it.next()
@@ -679,13 +685,13 @@ def retrieve_structure_of_gap_handle(self):
 
         sage: from mygap import mygap
         sage: mygap.FiniteField(3).category()
-        Category of finite gap fields
+        Category of finite g a p fields
         sage: mygap.eval("Integers").category()
-        Category of infinite commutative gap rings
+        Category of infinite commutative g a p rings
         sage: mygap.eval("PositiveIntegers").category()
-        Category of infinite commutative associative unital additive commutative additive associative distributive gap magmas and additive magmas
+        Category of infinite commutative associative unital additive commutative additive associative distributive g a p magmas and additive magmas
         sage: mygap.eval("Cyclotomics").category()
-        Category of infinite gap fields
+        Category of infinite g a p fields
     """
     structure = Structure(GAPObject, Objects())
     gap_categories = [str(cat) for cat in self.CategoriesOfObject()]

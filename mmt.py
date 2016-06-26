@@ -528,6 +528,74 @@ class LieAlgebras(Category_over_base_ring):
             # return tuple(self(handle) for handle in self.gap().GeneratorsOfAlgebra())
             pass
 
+        @semantic(mmt="TODO", gap="LieCentre", codomain="two_sided_ideals_of_self")
+        def lie_center(self):
+            pass
+
+        @semantic(mmt="TODO", gap="LieCentralizer", codomain="TODO")
+        def lie_centralizer(self, S):
+            pass
+
+        @semantic(mmt="TODO", gap="LieNormalizer", codomain="TODO")
+        def lie_normalizer(self, U):
+            pass
+
+        @semantic(mmt="TODO", gap="LieDerivedSubalgebra", codomain="TODO")
+        def lie_derived_subalgebra():
+            pass
+
+        @semantic(mmt="TODO", gap="LieNilRadical", codomain="TODO")
+        def lie_nilradical():
+            pass
+
+        @semantic(mmt="TODO", gap="LieSolvableRadical", codomain="TODO")
+        def lie_solvable_radical():
+            pass
+
+        @semantic(mmt="TODO", gap="CartanSubalgebra", codomain="TODO")
+        def cartan_subalgebra():
+            pass
+
+        @semantic(mmt="TODO", gap="LieDerivedSeries", codomain="TODO")
+        def lie_derived_series():
+            pass
+
+        @semantic(mmt="TODO", gap="LieLowerCentralSeries", codomain="TODO")
+        def lie_lower_central_series():
+            pass
+
+        @semantic(mmt="TODO", gap="LieUpperCentralSeries", codomain="TODO")
+        def lie_upper_central_series():
+            pass
+
+        @semantic(mmt="TODO", gap="IsLieAbelian", codomain="TODO")
+        def is_lie_abelian():
+            pass
+
+        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain="TODO")
+        def is_lie_nilpotent():
+            pass
+
+        @semantic(mmt="TODO", gap="IsLieSolvable", codomain="TODO")
+        def is_lie_solvable():
+            pass
+
+        @semantic(mmt="TODO", gap="SemiSimpleType", codomain="TODO")
+        def semi_simple_type():
+            pass
+
+        @semantic(mmt="TODO", gap="ChevalleyBasis", codomain="TODO")
+        def chevalley_basis():
+            pass
+
+        @semantic(mmt="TODO", gap="RootSystem", codomain="TODO")
+        def root_system():
+            pass
+
+        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain="TODO")
+        def is_restricted_lie_algebra():
+            pass
+
     class ElementMethods:
 
         pass

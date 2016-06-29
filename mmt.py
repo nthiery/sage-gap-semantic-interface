@@ -525,71 +525,71 @@ class LieAlgebras(Category_over_base_ring):
             # return tuple(self(handle) for handle in self.gap().GeneratorsOfAlgebra())
             pass
 
-        @semantic(mmt="TODO", gap="LieCentre", codomain="two_sided_ideals_of_self")
+        @semantic(mmt="TODO", gap="LieCentre") # TODO: codomain
         def lie_center(self):
             pass
 
-        @semantic(mmt="TODO", gap="LieCentralizer", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieCentralizer") # TODO: codomain
         def lie_centralizer(self, S):
             pass
 
-        @semantic(mmt="TODO", gap="LieNormalizer", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieNormalizer") # TODO: codomain
         def lie_normalizer(self, U):
             pass
 
-        @semantic(mmt="TODO", gap="LieDerivedSubalgebra", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieDerivedSubalgebra") # TODO: codomain
         def lie_derived_subalgebra():
             pass
 
-        @semantic(mmt="TODO", gap="LieNilRadical", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieNilRadical") # TODO: codomain
         def lie_nilradical():
             pass
 
-        @semantic(mmt="TODO", gap="LieSolvableRadical", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieSolvableRadical") # TODO: codomain
         def lie_solvable_radical():
             pass
 
-        @semantic(mmt="TODO", gap="CartanSubalgebra", codomain="TODO")
+        @semantic(mmt="TODO", gap="CartanSubalgebra") # TODO: codomain
         def cartan_subalgebra():
             pass
 
-        @semantic(mmt="TODO", gap="LieDerivedSeries", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieDerivedSeries") # TODO: codomain
         def lie_derived_series():
             pass
 
-        @semantic(mmt="TODO", gap="LieLowerCentralSeries", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieLowerCentralSeries") # TODO: codomain
         def lie_lower_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="LieUpperCentralSeries", codomain="TODO")
+        @semantic(mmt="TODO", gap="LieUpperCentralSeries") # TODO: codomain
         def lie_upper_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieAbelian", codomain="TODO")
+        @semantic(mmt="TODO", gap="IsLieAbelian") # TODO: codomain
         def is_lie_abelian():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain="TODO")
+        @semantic(mmt="TODO", gap="IsLieNilpotent") # TODO: codomain
         def is_lie_nilpotent():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieSolvable", codomain="TODO")
+        @semantic(mmt="TODO", gap="IsLieSolvable") # TODO: codomain
         def is_lie_solvable():
             pass
 
-        @semantic(mmt="TODO", gap="SemiSimpleType", codomain="TODO")
+        @semantic(mmt="TODO", gap="SemiSimpleType") # TODO: codomain
         def semi_simple_type():
             pass
 
-        @semantic(mmt="TODO", gap="ChevalleyBasis", codomain="TODO")
+        @semantic(mmt="TODO", gap="ChevalleyBasis") # TODO: codomain
         def chevalley_basis():
             pass
 
-        @semantic(mmt="TODO", gap="RootSystem", codomain="TODO")
+        @semantic(mmt="TODO", gap="RootSystem") # TODO: codomain
         def root_system():
             pass
 
-        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain="TODO")
+        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra") # TODO: codomain
         def is_restricted_lie_algebra():
             pass
 
@@ -615,5 +615,3 @@ class LieAlgebras(Category_over_base_ring):
             b = matrix([[0, 0],
                         [1, 0]])
             return mygap.LieAlgebra( QQ, [a, b] )
-
-

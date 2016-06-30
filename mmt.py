@@ -545,13 +545,13 @@ class LieAlgebras(Category_over_base_ring):
         sage: L.semi_simple_type()
         'A1'
         sage: L.chevalley_basis()
-        <mygap.GAPObject object at 0x1b6e2bc90>
+        <mygap.GAPObject object at 0x...>
         sage: L.chevalley_basis().gap()
         [ [ LieObject( [ [ 0, 1 ], [ 0, 0 ] ] ) ],
           [ LieObject( [ [ 0, 0 ], [ 1, 0 ] ] ) ],
           [ LieObject( [ [ 1, 0 ], [ 0, -1 ] ] ) ] ]
         sage: L.root_system()
-        <mygap.GAPObject object at 0x1b6e2be10>
+        <mygap.GAPObject object at 0x...>
         sage: L.root_system().gap()
         <root system of rank 1>
         sage: L.is_restricted_lie_algebra()

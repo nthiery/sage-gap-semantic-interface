@@ -222,6 +222,13 @@ class MMTWrapMethod(MMTWrap):
         wrapper_method.__name__ = self.__imfunc__.__name__
         return wrapper_method
 
+nested_classes_of_categories = {
+    "ParentMethods": "parent",
+    "ElementMethods": "element",
+    "MorphismMethods": "morphism",
+    "SubcategoryMethods": "subcategory"
+}
+
 def generate_interface(cls, mmt_theory):
     """
     INPUT:
@@ -237,7 +244,12 @@ def generate_interface(cls, mmt_theory):
         GAP_cls.__module__ = cls.__module__
         setattr(cls, 'GAP', GAP_cls)
 
-    for name in ["ParentMethods", "ElementMethods", "MorphismMethods", "SubcategoryMethods"]:
+    cls._semantic={
+        'gap': gap,
+        'mmt': mmt,
+    }
+    for name in nested_classes_of_categories.keys():
+        nested_class_semantic = {}
         try:
             source = getattr(cls, name)
         except AttributeError:
@@ -252,15 +264,22 @@ def generate_interface(cls, mmt_theory):
             if key in {'__module__', '__doc__'}:
                 continue
             assert isinstance(method, MMTWrapMethod)
+            nested_class_semantic[key] = {
+                "__imfunc__": method.__imfunc__,
+                "codomain" : method.codomain,
+                "gap_name" : method.gap_name,
+                "mmt_name" : method.mmt_name
+            }
             setattr(target, key, method.generate_code(mmt_theory))
             setattr(source, key, method.__imfunc__)
+        cls._semantic[nested_classes_of_categories[name]] = nested_class_semantic
 
 
-def semantic(mmt=None, variant=None, module_name=None, codomain=None, gap=None):
+def semantic(mmt=None, variant=None, codomain=None, gap=None):
     def f(cls_or_function):
         if inspect.isclass(cls_or_function):
             cls = cls_or_function
-            generate_interface(cls, mmt)
+            generate_interface(cls, mmt=mmt, gap=gap)
             return cls
         else:
             return MMTWrapMethod(cls_or_function,
@@ -348,7 +367,7 @@ class AdditiveMagmas:
                 pass
 monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 
-@semantic(mmt="Magma", variant="multiplicative", module_name="sage.categories.magmas")
+@semantic(mmt="Magma", variant="multiplicative")
 class Magmas:
     class ElementMethods:
         @semantic(mmt="*", gap=r"\*", codomain="parent") #, operator="*"
@@ -377,11 +396,12 @@ class Magmas:
                 pass
 monkey_patch(Magmas, sage.categories.magmas.Magmas)
 
-@semantic(mmt="Semigroup", variant="additive", module_name="sage.categories.additive_semigroups")
+@semantic(mmt="Semigroup", variant="additive")
 class AdditiveSemigroups:
     pass
+monkey_patch(AdditiveSemigroups, sage.categories.additive_semigroups.AdditiveSemigroups)
 
-@semantic(mmt="Semigroup", variant="multiplicative", module_name="sage.categories.semigroups")
+@semantic(mmt="Semigroup", variant="multiplicative")
 class Semigroups:
     class ParentMethods:
         @semantic(gap="GeneratorsOfSemigroup", codomain="list_of_self") # TODO: tuple_of_self
@@ -459,12 +479,12 @@ class Semigroups:
                 pass
 monkey_patch(Semigroups, sage.categories.semigroups.Semigroups)
 
-@semantic(mmt="Group", variant="multiplicative", module_name="sage.categories.groups")
+@semantic(mmt="Group", variant="multiplicative")
 class Groups:
 
     class ParentMethods:
 
-        @semantic(gap="IsAbelian")
+        @semantic(gap="IsAbelian", codomain="sage")
         @abstract_method
         def is_abelian(self):
             pass

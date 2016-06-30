@@ -199,7 +199,10 @@ class MMTWrapMethod(MMTWrap):
                     assert self.codomain is None or codomain == self.codomain
         assert arity is not None
         assert gap_name is not None
-        if codomain == "parent":
+        if codomain == list:
+            def wrapper_method(self, *args):
+                return [self._wrap(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))]
+        elif codomain == "parent":
             def wrapper_method(self, *args):
                 return self.parent()(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
         elif codomain == "self":
@@ -229,11 +232,12 @@ nested_classes_of_categories = {
     "SubcategoryMethods": "subcategory"
 }
 
-def generate_interface(cls, mmt_theory):
+def generate_interface(cls, mmt=None, gap=None):
     """
     INPUT:
     - ``cls`` -- the class of a cls
-    - ``mmt_theory`` -- an mmt theory
+    - ``mmt`` -- a string naming an mmt theory
+    - ``gap`` -- a string naming a gap property/category
     """
     # Fetch cls.GAP, creating it if needed
     try:
@@ -270,7 +274,7 @@ def generate_interface(cls, mmt_theory):
                 "gap_name" : method.gap_name,
                 "mmt_name" : method.mmt_name
             }
-            setattr(target, key, method.generate_code(mmt_theory))
+            setattr(target, key, method.generate_code(mmt))
             setattr(source, key, method.__imfunc__)
         cls._semantic[nested_classes_of_categories[name]] = nested_class_semantic
 
@@ -329,6 +333,15 @@ class EnumeratedSets:
         def __iter__(self):
             pass
 monkey_patch(EnumeratedSets, sage.categories.enumerated_sets.EnumeratedSets)
+
+# class Lists:
+#     def super_categories(self):
+#         return EnumeratedSets().Finite()
+#     class ParentMethods:
+#         @semantic(gap="")
+#         @abstract_method
+#         def __getitem__(self):
+#             pass
 
 @semantic(mmt="Magma", variant="additive")
 class AdditiveMagmas:
@@ -643,17 +656,15 @@ class LieAlgebras(Category_over_base_ring):
         def cartan_subalgebra():
             pass
 
-        # TODO: so far the 3 following methods give a list as a gap object
-
-        @semantic(mmt="TODO", gap="LieDerivedSeries") # TODO: codomain
+        @semantic(mmt="TODO", gap="LieDerivedSeries", codomain=list)
         def lie_derived_series():
             pass
 
-        @semantic(mmt="TODO", gap="LieLowerCentralSeries") # TODO: codomain
+        @semantic(mmt="TODO", gap="LieLowerCentralSeries", codomain=list)
         def lie_lower_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="LieUpperCentralSeries") # TODO: codomain
+        @semantic(mmt="TODO", gap="LieUpperCentralSeries", codomain=list)
         def lie_upper_central_series():
             pass
 

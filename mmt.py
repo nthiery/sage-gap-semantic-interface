@@ -494,7 +494,7 @@ class LieAlgebras(Category_over_base_ring):
         sage: from mmt import LieAlgebras
         sage: L = LieAlgebras(Rings()).GAP().example()
         sage: L
-        <Lie algebra of dimension 3 over Rationals>
+        <Lie algebra over Rationals, with 2 generators>
         sage: L.category()
         Category of g a p lie algebras over rings
         sage: Z = L.lie_center()
@@ -502,6 +502,8 @@ class LieAlgebras(Category_over_base_ring):
         <Lie algebra of dimension 0 over Rationals>
         sage: Z.category()
         Category of finite commutative associative g a p lie algebras over rings
+        sage: L     # we know more after computing the center!
+        <Lie algebra of dimension 3 over Rationals>
         sage: CZ = L.lie_centralizer(Z)
         sage: CZ
         <Lie algebra of dimension 3 over Rationals>

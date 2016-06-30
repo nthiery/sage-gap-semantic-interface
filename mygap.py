@@ -326,6 +326,7 @@ from sage.categories.sets_cat import Sets
 from sage.categories.magmas import Magmas
 from sage.categories.additive_semigroups import AdditiveSemigroups
 from sage.categories.additive_groups import AdditiveGroups
+from sage.categories.enumerated_sets import EnumeratedSets
 from sage.categories.rings import Rings
 from sage.structure.element import Element
 from sage.structure.parent import Parent
@@ -628,6 +629,7 @@ class Structure:
         return repr((self.category, self.cls))
 
 gap_category_to_structure = {
+    "IsList": add(EnumeratedSets().Finite()),
     "IsMagma": add(Magmas()),
     "IsMagmaWithOne": add(Magmas().Unital()),
     "IsMagmaWithInverses": add(Magmas().Unital().Inverse()),

@@ -508,6 +508,76 @@ class LieAlgebras(Category_over_base_ring):
     A class for Lie algebras.
 
     The implementation is as handles to GAP objects.
+
+    EXAMPLE::
+
+        sage: from mmt import LieAlgebras
+        sage: L = LieAlgebras(Rings()).GAP().example()
+        sage: L
+        <Lie algebra over Rationals, with 2 generators>
+        sage: L.category()
+        Category of g a p lie algebras over rings
+        sage: Z = L.lie_center()
+        sage: Z
+        <Lie algebra of dimension 0 over Rationals>
+        sage: Z.category()
+        Category of finite commutative associative g a p lie algebras over rings
+        sage: L     # we know more after computing the center!
+        <Lie algebra of dimension 3 over Rationals>
+        sage: CZ = L.lie_centralizer(Z)
+        sage: CZ
+        <Lie algebra of dimension 3 over Rationals>
+        sage: CZ.category()
+        Category of g a p lie algebras over rings
+        sage: CL = L.lie_centralizer(L)
+        sage: CL
+        <Lie algebra of dimension 0 over Rationals>
+        sage: NL = L.lie_normalizer(L)
+        sage: NL
+        <Lie algebra of dimension 3 over Rationals>
+        sage: NZ = L.lie_normalizer(Z)
+        sage: NZ
+        <Lie algebra of dimension 3 over Rationals>
+        sage: L.lie_derived_subalgebra()
+        <Lie algebra of dimension 3 over Rationals>
+        sage: L.lie_nilradical()
+        <Lie algebra of dimension 0 over Rationals>
+        sage: L.lie_solvable_radical()
+        <Lie algebra of dimension 0 over Rationals>
+        sage: L.cartan_subalgebra()
+        <Lie algebra of dimension 1 over Rationals>
+        sage: L.lie_derived_series()
+        <mygap.GAPObject object at 0x...>
+        sage: L.lie_derived_series().gap()
+        [ <Lie algebra of dimension 3 over Rationals> ]
+        sage: L.lie_derived_series().gap()[0]
+        <Lie algebra of dimension 3 over Rationals>
+        sage: L.lie_lower_central_series()
+        <mygap.GAPObject object at 0x...>
+        sage: L.lie_upper_central_series()
+        <mygap.GAPObject object at 0x...>
+        sage: L.is_lie_abelian()
+        False
+        sage: Z.is_lie_abelian()
+        True
+        sage: L.is_lie_nilpotent()
+        False
+        sage: L.is_lie_solvable()
+        False
+        sage: L.semi_simple_type()
+        'A1'
+        sage: L.chevalley_basis()
+        <mygap.GAPObject object at 0x...>
+        sage: L.chevalley_basis().gap()
+        [ [ LieObject( [ [ 0, 1 ], [ 0, 0 ] ] ) ],
+          [ LieObject( [ [ 0, 0 ], [ 1, 0 ] ] ) ],
+          [ LieObject( [ [ 1, 0 ], [ 0, -1 ] ] ) ] ]
+        sage: L.root_system()
+        <mygap.GAPObject object at 0x...>
+        sage: L.root_system().gap()
+        <root system of rank 1>
+        sage: L.is_restricted_lie_algebra()
+        False
     """
     def super_categories(self):
         """
@@ -573,6 +643,8 @@ class LieAlgebras(Category_over_base_ring):
         def cartan_subalgebra():
             pass
 
+        # TODO: so far the 3 following methods give a list as a gap object
+
         @semantic(mmt="TODO", gap="LieDerivedSeries") # TODO: codomain
         def lie_derived_series():
             pass
@@ -585,21 +657,23 @@ class LieAlgebras(Category_over_base_ring):
         def lie_upper_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieAbelian") # TODO: codomain
+        @semantic(mmt="TODO", gap="IsLieAbelian", codomain="sage")
         def is_lie_abelian():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieNilpotent") # TODO: codomain
+        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain="sage")
         def is_lie_nilpotent():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieSolvable") # TODO: codomain
+        @semantic(mmt="TODO", gap="IsLieSolvable", codomain="sage")
         def is_lie_solvable():
             pass
 
-        @semantic(mmt="TODO", gap="SemiSimpleType") # TODO: codomain
+        @semantic(mmt="TODO", gap="SemiSimpleType", codomain="sage")
         def semi_simple_type():
             pass
+
+        # TODO: so far the 2 following methods return GAP objects
 
         @semantic(mmt="TODO", gap="ChevalleyBasis") # TODO: codomain
         def chevalley_basis():
@@ -609,7 +683,7 @@ class LieAlgebras(Category_over_base_ring):
         def root_system():
             pass
 
-        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra") # TODO: codomain
+        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain="sage")
         def is_restricted_lie_algebra():
             pass
 

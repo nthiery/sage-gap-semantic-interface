@@ -353,7 +353,8 @@ sage.libs.gap.gap_functions.common_gap_functions.extend(
       "LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
       "GeneratorsOfMonoid", "GeneratorsOfSemigroup",
       "GeneratorsOfAlgebra", "AdditiveInverse",
-      'IsomorphismTransformationMonoid',
+      "IsomorphismTransformationMonoid", "LieCentralizer",
+      "LieNormalizer", "IsLieNilpotent", "IsRestrictedLieAlgebra",
       r"\+", r"\-", r"\*", r"\/"
   ]))
 

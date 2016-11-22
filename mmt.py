@@ -79,6 +79,7 @@ import itertools
 from recursive_monkey_patch import monkey_patch
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
+from sage.categories.category import Category
 from sage.categories.category_types import Category_over_base_ring
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.sets.family import Family
@@ -236,13 +237,15 @@ nested_classes_of_categories = [
     "SubcategoryMethods",
 ]
 
-def generate_interface(cls, mmt=None, gap=None):
+def generate_interface(cls, mmt=None, gap=None, gap_super=None, gap_sub=None, gap_negation=None):
     """
     INPUT:
-    - ``cls`` -- the class of a cls
+    - ``cls`` -- the class of a category
     - ``mmt`` -- a string naming an mmt theory
     - ``gap`` -- a string naming a gap property/category
     """
+    import mygap
+
     # Fetch cls.GAP, creating it if needed
     try:
         # Can't use cls.GAP because of the binding behavior
@@ -252,10 +255,34 @@ def generate_interface(cls, mmt=None, gap=None):
         GAP_cls.__module__ = cls.__module__
         setattr(cls, 'GAP', GAP_cls)
 
+    # Store the semantic information for later use
     cls._semantic={
         'gap': gap,
+        'gap_sub': gap_sub,
+        'gap_super': gap_super,
+        'gap_negation': gap_negation,
         'mmt': mmt,
     }
+
+    # Fill the database mapping gap categories / properties to their
+    # corresponding (super) Sage categories
+    if gap_sub is None:
+        gap_sub = gap
+    if gap_sub is not None:
+        if issubclass(cls, Category):
+            import mygap
+            mygap.gap_category_to_structure[gap_sub] = mygap.add(category=cls)
+        else:
+            # This is a fake class whose content will be monkey patched to an actual category
+            # Delay the database filling until the monkey patching, so
+            # that will actually know the category class
+            @classmethod
+            def _monkey_patch_hook(target, source):
+                assert issubclass(target, Category)
+                mygap.gap_category_to_structure[gap_sub] = mygap.add(category=target)
+                cls._monkey_patch_hook = _monkey_patch_hook
+
+    # Recurse in nested classes
     for name in nested_classes_of_categories:
         try:
             source = getattr(cls, name)
@@ -286,7 +313,7 @@ def semantic(mmt=None, variant=None, codomain=None, gap=None, gap_negation=None,
     def f(cls_or_function):
         if inspect.isclass(cls_or_function):
             cls = cls_or_function
-            generate_interface(cls, mmt=mmt, gap=gap)
+            generate_interface(cls, mmt=mmt, gap=gap, gap_negation=gap_negation, gap_sub=gap_sub, gap_super=gap_super)
             return cls
         else:
             return MMTWrapMethod(cls_or_function,
@@ -322,7 +349,7 @@ class Sets:
     @semantic(mmt="TODO", gap="IsFinite")
     class Finite:
         class ParentMethods:
-            @semantic(gap="List", codomain="list_of_self")
+            @semantic(gap="IsList", codomain="list_of_self")
             @abstract_method
             def list(self):
                 pass
@@ -335,7 +362,7 @@ monkey_patch(Sets, sage.categories.sets_cat.Sets)
 @semantic(mmt="TODO")
 class EnumeratedSets:
     class ParentMethods:
-        @semantic(gap="Iterator", codomain="iter_of_self")
+        @semantic(gap="IsIterator", codomain="iter_of_self")
         @abstract_method
         def __iter__(self):
             pass
@@ -382,6 +409,7 @@ class AdditiveMagmas:
                 # def _sub_(self,other): return self(gap.Subtract(self.gap(), other.gap()))
                 pass
 
+            # TODO: Check Additive Inverse
             @semantic(gap="AdditiveInverse", codomain="parent")
             @abstract_method
             def __neg__(self):
@@ -394,7 +422,7 @@ class AdditiveMagmas:
         pass
 monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 
-@semantic(mmt="Magma", gap="Magmas", variant="multiplicative")
+@semantic(mmt="Magma", gap="IsMagma", variant="multiplicative")
 class Magmas:
     class ElementMethods:
         @semantic(mmt="*", gap=r"\*", codomain="parent") #, operator="*"
@@ -426,7 +454,7 @@ class Magmas:
             pass
 
     @semantic(gap="IsCommutative")
-    class Unital:
+    class Commutative:
         pass
 
 monkey_patch(Magmas, sage.categories.magmas.Magmas)
@@ -437,6 +465,9 @@ monkey_patch(Magmas, sage.categories.magmas.Magmas)
 @semantic(mmt="Semigroup", variant="additive", gap="IsNearAdditiveMagma")
 class AdditiveSemigroups:
     # Additive Magmas are always assumed to be associative and commutative in GAP
+    # Near Additive Magmas don't require commutativity
+    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
+
     @semantic(gap="IsAdditiveMagma")
     class AdditiveCommutative:
         pass
@@ -512,7 +543,7 @@ class Semigroups:
             def isomorphism_transformation_semigroup(self):
                 pass
 
-    @semantic()
+    @semantic(gap="IsMonoidAsSemigroup")
     class Unital:
         class ParentMethods:
             @semantic(gap="GeneratorsOfMonoid", codomain="list_of_self") # TODO: tuple_of_self

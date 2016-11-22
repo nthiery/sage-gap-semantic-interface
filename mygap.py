@@ -328,13 +328,14 @@ Misc TODO
 from recursive_monkey_patch import monkey_patch
 from sage.misc.cachefunc import cached_method
 from sage.misc.nested_class import nested_pickle
+from sage.categories.category import Category
 from sage.categories.objects import Objects
 from sage.categories.sets_cat import Sets
-from sage.categories.magmas import Magmas
-from sage.categories.additive_semigroups import AdditiveSemigroups
-from sage.categories.additive_groups import AdditiveGroups
-from sage.categories.enumerated_sets import EnumeratedSets
-from sage.categories.modules import Modules
+#from sage.categories.magmas import Magmas
+#from sage.categories.additive_semigroups import AdditiveSemigroups
+#from sage.categories.additive_groups import AdditiveGroups
+#from sage.categories.enumerated_sets import EnumeratedSets
+#from sage.categories.modules import Modules
 from sage.categories.rings import Rings
 from sage.structure.element import Element
 from sage.structure.parent import Parent
@@ -351,12 +352,7 @@ import categories.objects
 import sage.categories.objects
 monkey_patch(categories.objects, sage.categories.objects)
 
-if False: # Whether to use the explicit GAP categories (in categories/*), or anotations (in mmt.py)
-    monkey_patch(categories, sage.categories)
-    from sage.categories.lie_algebras import LieAlgebras
-else:
-    import mmt
-    from mmt import LieAlgebras
+gap_category_to_structure = {}
 
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
@@ -644,15 +640,19 @@ def add(category=None, cls=object):
         sage: s.cls
         <class 'mygap.GAPParent'>
     """
-    if cls is object and category is not None and category.is_subcategory(Sets()):
-        cls = GAPParent
-    def f(structure):
-        if cls is not None:
-            assert issubclass(cls, structure.cls)
-            structure.cls = cls
-        if category is not None:
-            structure.category &= category
-    return f
+    assert category is None or issubclass(category, Category)
+    s = Structure(cls, category)
+    def add(structure):
+        if s.category is not None:
+            if not isinstance(s.category, Category):
+                s.category = s.category.an_instance()
+                if s.cls is object and s.category.is_subcategory(Sets()):
+                    s.cls = GAPParent
+            structure.category &= s.category
+        if s.cls is not None:
+            assert issubclass(s.cls, structure.cls)
+            structure.cls = s.cls
+    return add
 
 def add_axiom(axiom):
     """
@@ -679,36 +679,16 @@ class Structure:
     def __repr__(self):
         return repr((self.category, self.cls))
 
-gap_category_to_structure = {
-    #"IsList": add(EnumeratedSets().Finite()),
-    #"IsMagma": add(Magmas()),
-    #"IsMagmaWithOne": add(Magmas().Unital()),
-    #"IsMagmaWithInverses": add(Magmas().Unital().Inverse()),
-
+gap_category_to_structure.update({
     # Note: Additive Magmas are always assumed to be associative and commutative in GAP
-    # Near Additive Magmas don't require commutativity
-    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
-    #"IsNearAdditiveMagma": add(AdditiveSemigroups()),
-    #"IsAdditiveMagma": add(AdditiveSemigroups().AdditiveCommutative()),
-    #"IsNearAdditiveMagmaWithZero": add(AdditiveSemigroups().AdditiveUnital()),
-    ## "IsMagmaWithInversesIfNonzero": 
-    #"IsFreeLeftModule": add(Modules(Rings()).WithBasis()),
-
-    # Why isn't this a property?
-    #"IsNearAdditiveGroup": add(AdditiveGroups()),
+    ## "IsMagmaWithInversesIfNonzero"
     "IsIterator": add(cls=GAPIterator),
     # Cheating a bit: this should be IsMapping, which further requires IsTotal and IsSingleValued
-    "IsGeneralMapping": add(cls=GAPMorphism, category=Sets()),
-}
+    "IsGeneralMapping": add(cls=GAPMorphism, category=Sets),
+})
 
 true_properties_to_structure = {
-    # "IsFinite": add_axiom("Finite"),
-    #"IsAssociative": add_axiom("Associative"),
-    #"IsCommutative": add_axiom("Commutative"),
-    #"IsMonoidAsSemigroup": add_axiom("Unital"),
     #"IsGroupAsSemigroup": add_axiom("Inverse"), # Useful?
-    #"IsAdditivelyCommutative": add_axiom("AdditiveCommutative"),
-    #"IsFiniteDimensional": add_axiom("FiniteDimensional"),
 
     # Cheating: we don't have the LDistributive and RDistributive
     # axioms, and the current infrastructure does not allow to make a
@@ -758,8 +738,8 @@ def retrieve_structure_of_gap_handle(self):
     true_properties = set(str(prop) for prop in self.KnownTruePropertiesOfObject())
     for prop in properties:
         if prop in true_properties:
-            if prop in true_properties_to_structure:
-                true_properties_to_structure[prop](structure)
+            if prop in gap_category_to_structure:
+                gap_category_to_structure[prop](structure)
         else:
             if prop in false_properties_to_structure:
                 false_properties_to_structure[prop](structure)
@@ -771,3 +751,6 @@ def retrieve_structure_of_gap_handle(self):
     if "IsMagmaWithInversesIfNonzero" in gap_categories and structure.category.is_subcategory(Rings()):
         structure.category = structure.category.Division()
     return structure
+
+import mmt
+#from mmt import LieAlgebras

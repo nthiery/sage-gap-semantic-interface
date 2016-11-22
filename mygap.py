@@ -269,7 +269,11 @@ Source code organization
 - Issue: Some duplication in the nested classes requires consistency
   betwen nested classes of the main categories and the nested classes
   here
-- Issue: How to support lazy import?
+- Issue: How to support lazy imports?
+- Issue: at this stage, Sage will associate a category C to its GAP
+  counterpart only if C has been imported, so that the associated
+  semantic information is inserted in the database
+
 
 libGAP
 ------

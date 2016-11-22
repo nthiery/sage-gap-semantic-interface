@@ -29,14 +29,15 @@ EXAMPLES::
 Missing features
 ================
 
-We would want to use F.random_element from ``Sets.GAP``, not :class:`FiniteEnumeratedSets`:
+We would want to use F.random_element from ``Sets.GAP``, not
+:class:`FiniteEnumeratedSets`::
 
-        sage: F = mygap.FiniteField(3); F
-        GF(3)
-        sage: F.category()
-        Category of finite g a p fields
-        sage: F.random_element.__module__
-        'sage.categories.finite_enumerated_sets'
+    sage: F = mygap.FiniteField(3); F
+    GF(3)
+    sage: F.category()
+    Category of finite g a p fields
+    sage: F.random_element.__module__
+    'sage.categories.finite_enumerated_sets'
 
 We need a way (input syntax and datastructure) to represent various
 types for the codomain (either passed to @semantic or recovered from

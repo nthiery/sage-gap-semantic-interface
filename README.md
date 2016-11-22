@@ -4,6 +4,20 @@ This module, built on top of libgap, enriches handles to GAP objects
 by retrieving their mathematical properties from GAP, and exposing
 them to Sage, to make them behave as native Sage objects.
 
+## Usage examples
+
+See the documentation at the top of the [mygap](mygap.py) module.
+
+## Installation
+
+Clone the repository, and run::
+
+    sage -pip install .
+
+If you plan to do development on this project, do instead:
+
+    sage -pip install -e .
+
 ## Context and motivations
 
 ### The handle paradigm in system interfaces
@@ -155,7 +169,7 @@ using MMT.
     sage -pip install lxml
     sage -python setup.py install
 
-# Download all the MMT stuff
+# Download all the MMT stuff (optional)
 
     mkdir MMT
     cd MMT

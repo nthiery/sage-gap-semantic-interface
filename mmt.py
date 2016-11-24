@@ -811,3 +811,21 @@ class LieAlgebras(Category_over_base_ring):
             b = matrix([[0, 0],
                         [1, 0]])
             return mygap.LieAlgebra( QQ, [a, b] )
+
+class Category_over_base_ring:
+    @classmethod
+    def an_instance(cls):
+        return cls(sage.categories.rings.Rings())
+monkey_patch(Category_over_base_ring, sage.categories.category_types.Category_over_base_ring)
+
+class Fields:
+    class GAP(CategoryWithAxiom):
+        def extra_super_categories(self):
+            return [sage.categories.modules.Modules(sage.categories.rings.Rings()).FiniteDimensional()]
+
+    class Finite:
+        class GAP(CategoryWithAxiom):
+            def extra_super_categories(self):
+                return [sage.categories.enumerated_sets.EnumeratedSets()]
+
+monkey_patch(Fields, sage.categories.fields.Fields)

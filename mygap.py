@@ -455,8 +455,9 @@ class GAPObject(object):
 
         EXAMPLES::
 
+            sage: from mygap import mygap
             sage: t = mygap.Transformation([1,3,2])
-            sage: t1 = t._libgap_()
+            sage: t1 = t._libgap_(); t1
             Transformation( [ 1, 3, 2 ] )
 
             sage: type(t1)
@@ -638,7 +639,7 @@ def add(category=None, cls=object):
 
         sage: from mygap import add, Structure
         sage: s = Structure(object, Objects())
-        sage: add(Magmas())(s)
+        sage: add(Magmas)(s)
         sage: s.category
         Category of magmas
         sage: s.cls

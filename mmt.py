@@ -269,19 +269,21 @@ def generate_interface(cls, mmt=None, gap=None, gap_super=None, gap_sub=None, ga
     # corresponding (super) Sage categories
     if gap_sub is None:
         gap_sub = gap
-    if gap_sub is not None:
-        if issubclass(cls, Category):
+    if gap_sub is not None or gap_negation is not None:
+        def fill_allignment_database(cls, source=None):
+            assert issubclass(cls, Category)
             import mygap
-            mygap.gap_category_to_structure[gap_sub] = mygap.add(category=cls)
+            if gap_sub is not None:
+                mygap.gap_category_to_structure[gap_sub] = mygap.add(category=cls)
+            if gap_negation is not None:
+                mygap.false_properties_to_structure[gap_negation] = mygap.add(category=cls)
+        if issubclass(cls, Category):
+            fill_allignment_database(cls)
         else:
-            # This is a fake class whose content will be monkey patched to an actual category
+            # cls is a fake class whose content will be monkey patched to an actual category
             # Delay the database filling until the monkey patching, so
             # that will actually know the category class
-            @classmethod
-            def _monkey_patch_hook(target, source):
-                assert issubclass(target, Category)
-                mygap.gap_category_to_structure[gap_sub] = mygap.add(category=target)
-                cls._monkey_patch_hook = _monkey_patch_hook
+            cls._monkey_patch_hook = classmethod(fill_allignment_database)
 
     # Recurse in nested classes
     for name in nested_classes_of_categories:
@@ -350,7 +352,7 @@ class Sets:
     @semantic(mmt="TODO", gap="IsFinite")
     class Finite:
         class ParentMethods:
-            @semantic(gap="IsList", codomain="list_of_self")
+            @semantic(gap="List", codomain="list_of_self")
             @abstract_method
             def list(self):
                 pass
@@ -622,19 +624,19 @@ class LieAlgebras(Category_over_base_ring):
         sage: L
         <Lie algebra over Rationals, with 2 generators>
         sage: L.category()
-        Category of g a p lie algebras over rings
+        Category of finite dimensional g a p lie algebras with basis over Rational Field
         sage: Z = L.lie_center()
         sage: Z
         <Lie algebra of dimension 0 over Rationals>
         sage: Z.category()
-        Category of finite commutative associative g a p lie algebras over rings
+        Category of finite finite dimensional commutative associative g a p lie algebras with basis over Rational Field
         sage: L     # we know more after computing the center!
         <Lie algebra of dimension 3 over Rationals>
         sage: CZ = L.lie_centralizer(Z)
         sage: CZ
         <Lie algebra of dimension 3 over Rationals>
         sage: CZ.category()
-        Category of g a p lie algebras over rings
+        Category of finite dimensional g a p lie algebras with basis over Rational Field
         sage: CL = L.lie_centralizer(L)
         sage: CL
         <Lie algebra of dimension 0 over Rationals>
@@ -653,15 +655,13 @@ class LieAlgebras(Category_over_base_ring):
         sage: L.cartan_subalgebra()
         <Lie algebra of dimension 1 over Rationals>
         sage: L.lie_derived_series()
-        <mygap.GAPObject object at 0x...>
-        sage: L.lie_derived_series().gap()
-        [ <Lie algebra of dimension 3 over Rationals> ]
-        sage: L.lie_derived_series().gap()[0]
+        [<Lie algebra of dimension 3 over Rationals>]
+        sage: L.lie_derived_series()[0]
         <Lie algebra of dimension 3 over Rationals>
         sage: L.lie_lower_central_series()
-        <mygap.GAPObject object at 0x...>
+        [<Lie algebra of dimension 3 over Rationals>]
         sage: L.lie_upper_central_series()
-        <mygap.GAPObject object at 0x...>
+        [<Lie algebra over Rationals, with 0 generators>]
         sage: L.is_lie_abelian()
         False
         sage: Z.is_lie_abelian()
@@ -673,8 +673,6 @@ class LieAlgebras(Category_over_base_ring):
         sage: L.semi_simple_type()
         'A1'
         sage: L.chevalley_basis()
-        <mygap.GAPObject object at 0x...>
-        sage: L.chevalley_basis().gap()
         [ [ LieObject( [ [ 0, 1 ], [ 0, 0 ] ] ) ],
           [ LieObject( [ [ 0, 0 ], [ 1, 0 ] ] ) ],
           [ LieObject( [ [ 1, 0 ], [ 0, -1 ] ] ) ] ]

@@ -29,14 +29,15 @@ EXAMPLES::
 Missing features
 ================
 
-We would want to use F.random_element from ``Sets.GAP``, not :class:`FiniteEnumeratedSets`:
+We would want to use F.random_element from ``Sets.GAP``, not
+:class:`FiniteEnumeratedSets`::
 
-        sage: F = mygap.FiniteField(3); F
-        GF(3)
-        sage: F.category()
-        Category of finite g a p fields
-        sage: F.random_element.__module__
-        'sage.categories.finite_enumerated_sets'
+    sage: F = mygap.FiniteField(3); F
+    GF(3)
+    sage: F.category()
+    Category of finite g a p fields
+    sage: F.random_element.__module__
+    'sage.categories.finite_enumerated_sets'
 
 We need a way (input syntax and datastructure) to represent various
 types for the codomain (either passed to @semantic or recovered from
@@ -79,6 +80,7 @@ import itertools
 from recursive_monkey_patch import monkey_patch
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
+from sage.categories.category import Category
 from sage.categories.category_types import Category_over_base_ring
 from sage.categories.category_with_axiom import CategoryWithAxiom
 from sage.sets.family import Family
@@ -236,13 +238,15 @@ nested_classes_of_categories = [
     "SubcategoryMethods",
 ]
 
-def generate_interface(cls, mmt=None, gap=None):
+def generate_interface(cls, mmt=None, gap=None, gap_super=None, gap_sub=None, gap_negation=None):
     """
     INPUT:
-    - ``cls`` -- the class of a cls
+    - ``cls`` -- the class of a category
     - ``mmt`` -- a string naming an mmt theory
     - ``gap`` -- a string naming a gap property/category
     """
+    import mygap
+
     # Fetch cls.GAP, creating it if needed
     try:
         # Can't use cls.GAP because of the binding behavior
@@ -252,10 +256,36 @@ def generate_interface(cls, mmt=None, gap=None):
         GAP_cls.__module__ = cls.__module__
         setattr(cls, 'GAP', GAP_cls)
 
+    # Store the semantic information for later use
     cls._semantic={
         'gap': gap,
+        'gap_sub': gap_sub,
+        'gap_super': gap_super,
+        'gap_negation': gap_negation,
         'mmt': mmt,
     }
+
+    # Fill the database mapping gap categories / properties to their
+    # corresponding (super) Sage categories
+    if gap_sub is None:
+        gap_sub = gap
+    if gap_sub is not None or gap_negation is not None:
+        def fill_allignment_database(cls, source=None):
+            assert issubclass(cls, Category)
+            import mygap
+            if gap_sub is not None:
+                mygap.gap_category_to_structure[gap_sub] = mygap.add(category=cls)
+            if gap_negation is not None:
+                mygap.false_properties_to_structure[gap_negation] = mygap.add(category=cls)
+        if issubclass(cls, Category):
+            fill_allignment_database(cls)
+        else:
+            # cls is a fake class whose content will be monkey patched to an actual category
+            # Delay the database filling until the monkey patching, so
+            # that will actually know the category class
+            cls._monkey_patch_hook = classmethod(fill_allignment_database)
+
+    # Recurse in nested classes
     for name in nested_classes_of_categories:
         try:
             source = getattr(cls, name)
@@ -286,7 +316,7 @@ def semantic(mmt=None, variant=None, codomain=None, gap=None, gap_negation=None,
     def f(cls_or_function):
         if inspect.isclass(cls_or_function):
             cls = cls_or_function
-            generate_interface(cls, mmt=mmt, gap=gap)
+            generate_interface(cls, mmt=mmt, gap=gap, gap_negation=gap_negation, gap_sub=gap_sub, gap_super=gap_super)
             return cls
         else:
             return MMTWrapMethod(cls_or_function,
@@ -335,7 +365,7 @@ monkey_patch(Sets, sage.categories.sets_cat.Sets)
 @semantic(mmt="TODO")
 class EnumeratedSets:
     class ParentMethods:
-        @semantic(gap="Iterator", codomain="iter_of_self")
+        @semantic(gap="IsIterator", codomain="iter_of_self")
         @abstract_method
         def __iter__(self):
             pass
@@ -382,6 +412,7 @@ class AdditiveMagmas:
                 # def _sub_(self,other): return self(gap.Subtract(self.gap(), other.gap()))
                 pass
 
+            # TODO: Check Additive Inverse
             @semantic(gap="AdditiveInverse", codomain="parent")
             @abstract_method
             def __neg__(self):
@@ -394,7 +425,7 @@ class AdditiveMagmas:
         pass
 monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 
-@semantic(mmt="Magma", gap="Magmas", variant="multiplicative")
+@semantic(mmt="Magma", gap="IsMagma", variant="multiplicative")
 class Magmas:
     class ElementMethods:
         @semantic(mmt="*", gap=r"\*", codomain="parent") #, operator="*"
@@ -426,7 +457,7 @@ class Magmas:
             pass
 
     @semantic(gap="IsCommutative")
-    class Unital:
+    class Commutative:
         pass
 
 monkey_patch(Magmas, sage.categories.magmas.Magmas)
@@ -437,6 +468,9 @@ monkey_patch(Magmas, sage.categories.magmas.Magmas)
 @semantic(mmt="Semigroup", variant="additive", gap="IsNearAdditiveMagma")
 class AdditiveSemigroups:
     # Additive Magmas are always assumed to be associative and commutative in GAP
+    # Near Additive Magmas don't require commutativity
+    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
+
     @semantic(gap="IsAdditiveMagma")
     class AdditiveCommutative:
         pass
@@ -517,7 +551,7 @@ class Semigroups:
             def isomorphism_transformation_semigroup(self):
                 pass
 
-    @semantic()
+    @semantic(gap="IsMonoidAsSemigroup")
     class Unital:
         class ParentMethods:
             @semantic(gap="GeneratorsOfMonoid", codomain="list_of_self") # TODO: tuple_of_self
@@ -595,19 +629,19 @@ class LieAlgebras(Category_over_base_ring):
         sage: L
         <Lie algebra over Rationals, with 2 generators>
         sage: L.category()
-        Category of g a p lie algebras over rings
+        Category of finite dimensional g a p lie algebras with basis over Rational Field
         sage: Z = L.lie_center()
         sage: Z
         <Lie algebra of dimension 0 over Rationals>
         sage: Z.category()
-        Category of finite commutative associative g a p lie algebras over rings
+        Category of finite finite dimensional commutative associative g a p lie algebras with basis over Rational Field
         sage: L     # we know more after computing the center!
         <Lie algebra of dimension 3 over Rationals>
         sage: CZ = L.lie_centralizer(Z)
         sage: CZ
         <Lie algebra of dimension 3 over Rationals>
         sage: CZ.category()
-        Category of g a p lie algebras over rings
+        Category of finite dimensional g a p lie algebras with basis over Rational Field
         sage: CL = L.lie_centralizer(L)
         sage: CL
         <Lie algebra of dimension 0 over Rationals>
@@ -626,15 +660,13 @@ class LieAlgebras(Category_over_base_ring):
         sage: L.cartan_subalgebra()
         <Lie algebra of dimension 1 over Rationals>
         sage: L.lie_derived_series()
-        <mygap.GAPObject object at 0x...>
-        sage: L.lie_derived_series().gap()
-        [ <Lie algebra of dimension 3 over Rationals> ]
-        sage: L.lie_derived_series().gap()[0]
+        [<Lie algebra of dimension 3 over Rationals>]
+        sage: L.lie_derived_series()[0]
         <Lie algebra of dimension 3 over Rationals>
         sage: L.lie_lower_central_series()
-        <mygap.GAPObject object at 0x...>
+        [<Lie algebra of dimension 3 over Rationals>]
         sage: L.lie_upper_central_series()
-        <mygap.GAPObject object at 0x...>
+        [<Lie algebra over Rationals, with 0 generators>]
         sage: L.is_lie_abelian()
         False
         sage: Z.is_lie_abelian()
@@ -646,8 +678,6 @@ class LieAlgebras(Category_over_base_ring):
         sage: L.semi_simple_type()
         'A1'
         sage: L.chevalley_basis()
-        <mygap.GAPObject object at 0x...>
-        sage: L.chevalley_basis().gap()
         [ [ LieObject( [ [ 0, 1 ], [ 0, 0 ] ] ) ],
           [ LieObject( [ [ 0, 0 ], [ 1, 0 ] ] ) ],
           [ LieObject( [ [ 1, 0 ], [ 0, -1 ] ] ) ] ]

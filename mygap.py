@@ -198,6 +198,11 @@ Apparently not available for this kind of monoids::
 TODO and design discussions
 ===========================
 
+- Better support for GAP lists and collections
+- Better syntax for naming types / codomains
+- fill in gap_category_to_structure from the info provided by @semantic
+
+
 Vocabulary
 ----------
 
@@ -208,6 +213,8 @@ User interface and features
 
 - Keep the handle and the semantic handle separate or together?
 - For a Sage object, what should .gap() return: a plain handle or a semantic handle
+- For a semantic handle, what should .gap() return? Itself? In which case, we
+  would systematically use ._libgap_() to retrieve the underlying libgap handle?
 - Make it easy for the user to discover GAP methods and access documentation
   By tab completion?
   On the object itself or on some attribute of it?
@@ -262,7 +269,11 @@ Source code organization
 - Issue: Some duplication in the nested classes requires consistency
   betwen nested classes of the main categories and the nested classes
   here
-- Issue: How to support lazy import?
+- Issue: How to support lazy imports?
+- Issue: at this stage, Sage will associate a category C to its GAP
+  counterpart only if C has been imported, so that the associated
+  semantic information is inserted in the database
+
 
 libGAP
 ------
@@ -321,17 +332,23 @@ Misc TODO
 from recursive_monkey_patch import monkey_patch
 from sage.misc.cachefunc import cached_method
 from sage.misc.nested_class import nested_pickle
+from sage.categories.category import Category
 from sage.categories.objects import Objects
 from sage.categories.sets_cat import Sets
-from sage.categories.magmas import Magmas
-from sage.categories.additive_semigroups import AdditiveSemigroups
-from sage.categories.additive_groups import AdditiveGroups
-from sage.categories.enumerated_sets import EnumeratedSets
+#from sage.categories.magmas import Magmas
+#from sage.categories.additive_semigroups import AdditiveSemigroups
+#from sage.categories.additive_groups import AdditiveGroups
+#from sage.categories.enumerated_sets import EnumeratedSets
+#from sage.categories.modules import Modules
 from sage.categories.rings import Rings
 from sage.structure.element import Element
 from sage.structure.parent import Parent
 from sage.libs.gap.libgap import libgap
 from sage.libs.gap.element import GapElement
+
+##############################################################################
+# Initialization
+##############################################################################
 
 import categories
 import sage.categories
@@ -339,12 +356,7 @@ import categories.objects
 import sage.categories.objects
 monkey_patch(categories.objects, sage.categories.objects)
 
-if False: # Whether to use the explicit GAP categories (in categories/*), or anotations (in mmt.py)
-    monkey_patch(categories, sage.categories)
-    from sage.categories.lie_algebras import LieAlgebras
-else:
-    import mmt
-    from mmt import LieAlgebras
+gap_category_to_structure = {}
 
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
@@ -359,6 +371,11 @@ sage.libs.gap.gap_functions.common_gap_functions.extend(
       r"\+", r"\-", r"\*", r"\/"
   ]))
 
+# harvest the semantic from the categories
+
+##############################################################################
+# Code
+##############################################################################
 
 def GAP(gap_handle):
     """
@@ -433,7 +450,42 @@ class GAPObject(object):
         self._gap = gap_handle
 
     def gap(self):
+        """
+        Return the underlying libgap object.
+
+        EXAMPLES::
+
+            sage: from mygap import mygap
+            sage: t = mygap.Transformation([1,3,2])
+            sage: t1 = t._libgap_(); t1
+            Transformation( [ 1, 3, 2 ] )
+
+            sage: type(t1)
+            <type 'sage.libs.gap.element.GapElement'>
+
+        This hook is used by the ``libgap`` constructor::
+
+            sage: t2 = libgap(t); t2
+            Transformation( [ 1, 3, 2 ] )
+            sage: l = libgap([t, t, t]); l
+            [ Transformation( [ 1, 3, 2 ] ), Transformation( [ 1, 3, 2 ] ), Transformation( [ 1, 3, 2 ] ) ]
+
+        TESTS:
+
+        Both ``t._libgap_()`` and ``libgap(t)``  return the underlying ``libgap`` object::
+
+            sage: t1 is t2
+            True
+
+        Currently, ``libgap`` seems to make copies in the above list construction::
+
+            sage: l[1] is t1
+            False
+            sage: l[1] == t1
+            True
+        """
         return self._gap
+    _libgap_ = gap                 # TODO: do we want to use ._libgap_() instead of .gap() everywhere?
 
     def _repr_(self):
         return repr(self.gap())
@@ -587,21 +639,25 @@ def add(category=None, cls=object):
 
         sage: from mygap import add, Structure
         sage: s = Structure(object, Objects())
-        sage: add(Magmas())(s)
+        sage: add(Magmas)(s)
         sage: s.category
         Category of magmas
         sage: s.cls
         <class 'mygap.GAPParent'>
     """
-    if cls is object and category is not None and category.is_subcategory(Sets()):
-        cls = GAPParent
-    def f(structure):
-        if cls is not None:
-            assert issubclass(cls, structure.cls)
-            structure.cls = cls
-        if category is not None:
-            structure.category &= category
-    return f
+    assert category is None or issubclass(category, Category)
+    s = Structure(cls, category)
+    def add(structure):
+        if s.category is not None:
+            if not isinstance(s.category, Category):
+                s.category = s.category.an_instance()
+                if s.cls is object and s.category.is_subcategory(Sets()):
+                    s.cls = GAPParent
+            structure.category &= s.category
+        if s.cls is not None:
+            assert issubclass(s.cls, structure.cls)
+            structure.cls = s.cls
+    return add
 
 def add_axiom(axiom):
     """
@@ -628,34 +684,16 @@ class Structure:
     def __repr__(self):
         return repr((self.category, self.cls))
 
-gap_category_to_structure = {
-    "IsList": add(EnumeratedSets().Finite()),
-    "IsMagma": add(Magmas()),
-    "IsMagmaWithOne": add(Magmas().Unital()),
-    "IsMagmaWithInverses": add(Magmas().Unital().Inverse()),
-
+gap_category_to_structure.update({
     # Note: Additive Magmas are always assumed to be associative and commutative in GAP
-    # Near Additive Magmas don't require commutativity
-    # See http://www.gap-system.org/Manuals/doc/ref/chap55.html
-    "IsNearAdditiveMagma": add(AdditiveSemigroups()),
-    "IsAdditiveMagma": add(AdditiveSemigroups().AdditiveCommutative()),
-    "IsNearAdditiveMagmaWithZero": add(AdditiveSemigroups().AdditiveUnital()),
-    # "IsMagmaWithInversesIfNonzero": 
-
-    # Why isn't this a property?
-    "IsNearAdditiveGroup": add(AdditiveGroups()),
+    ## "IsMagmaWithInversesIfNonzero"
     "IsIterator": add(cls=GAPIterator),
     # Cheating a bit: this should be IsMapping, which further requires IsTotal and IsSingleValued
-    "IsGeneralMapping": add(cls=GAPMorphism, category=Sets()),
-}
+    "IsGeneralMapping": add(cls=GAPMorphism, category=Sets),
+})
 
 true_properties_to_structure = {
-    "IsFinite": add_axiom("Finite"),
-    "IsAssociative": add_axiom("Associative"),
-    "IsCommutative": add_axiom("Commutative"),
-    "IsMonoidAsSemigroup": add_axiom("Unital"),
-    "IsGroupAsSemigroup": add_axiom("Inverse"), # Useful?
-    "IsAdditivelyCommutative": add_axiom("AdditiveCommutative"),
+    #"IsGroupAsSemigroup": add_axiom("Inverse"), # Useful?
 
     # Cheating: we don't have the LDistributive and RDistributive
     # axioms, and the current infrastructure does not allow to make a
@@ -664,11 +702,11 @@ true_properties_to_structure = {
 
     # GAP's IsLieAlgebra is a filter to several properties,
     # IsAlgebra, IsZeroSquareRing, and IsJacobianRing
-    "IsJacobianRing": add(LieAlgebras(Rings()))
+    #"IsJacobianRing": add(LieAlgebras(Rings()))
 }
 
 false_properties_to_structure = {
-    "IsFinite": add_axiom("Infinite"),
+    #"IsFinite": add_axiom("Infinite"),
 }
 
 def retrieve_structure_of_gap_handle(self):
@@ -705,8 +743,8 @@ def retrieve_structure_of_gap_handle(self):
     true_properties = set(str(prop) for prop in self.KnownTruePropertiesOfObject())
     for prop in properties:
         if prop in true_properties:
-            if prop in true_properties_to_structure:
-                true_properties_to_structure[prop](structure)
+            if prop in gap_category_to_structure:
+                gap_category_to_structure[prop](structure)
         else:
             if prop in false_properties_to_structure:
                 false_properties_to_structure[prop](structure)
@@ -718,3 +756,6 @@ def retrieve_structure_of_gap_handle(self):
     if "IsMagmaWithInversesIfNonzero" in gap_categories and structure.category.is_subcategory(Rings()):
         structure.category = structure.category.Division()
     return structure
+
+import mmt
+#from mmt import LieAlgebras

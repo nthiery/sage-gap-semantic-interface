@@ -516,19 +516,24 @@ class Semigroups:
     @semantic()
     class Finite:
         class ParentMethods:
-            @semantic(gap="JClasses")
+            @semantic(gap="GreensJClasses")
             @abstract_method
             def j_classes(self):
                 pass
 
-            @semantic(gap="LClasses")
+            @semantic(gap="GreensLClasses")
             @abstract_method
             def l_classes(self):
                 pass
 
-            @semantic(gap="RClasses")
+            @semantic(gap="GreensRClasses")
             @abstract_method
             def r_classes(self):
+                pass
+
+            @semantic(gap="GreensDClasses")
+            @abstract_method
+            def d_classes(self):
                 pass
 
             @semantic(gap="StructureDescriptionMaximalSubgroups")
@@ -554,13 +559,13 @@ class Semigroups:
             def monoid_generators(self):
                 pass
 
-    @semantic()
-    class Finite:
-        class ParentMethods:
-            @semantic(gap="IsomorphismTransformationMonoid")
-            @abstract_method
-            def isomorphism_transformation_monoid(self):
-                pass
+        @semantic()
+        class Finite:
+            class ParentMethods:
+                @semantic(gap="IsomorphismTransformationMonoid")
+                @abstract_method
+                def isomorphism_transformation_monoid(self):
+                    pass
 
 monkey_patch(Semigroups, sage.categories.semigroups.Semigroups)
 

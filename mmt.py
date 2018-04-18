@@ -554,7 +554,7 @@ class Semigroups:
     @semantic(gap="IsMonoidAsSemigroup")
     class Unital:
         class ParentMethods:
-            @semantic(gap="GeneratorsOfMonoid", codomain="list_of_self") # TODO: tuple_of_self
+            @semantic(gap="GeneratorsOfMonoid", codomain="family(self)")
             @abstract_method
             def monoid_generators(self):
                 pass

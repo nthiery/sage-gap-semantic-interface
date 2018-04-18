@@ -600,7 +600,7 @@ class Modules:
         class FiniteDimensional:
             class ParentMethods:
                 @semantic(gap="Dimension", codomain="sage")
-                @abstract_method
+                @abstract_method # FIXME: this overrides ModulesWithBasis.ParentMethods.dimension
                 def dimension(self):
                     pass
 

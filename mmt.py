@@ -604,9 +604,12 @@ class Modules:
                 def dimension(self):
                     pass
 
+                # TODO: find an idiom when you want to specify the semantic of
+                # a method in a subcategory of where it's defined, and don't
+                # want to override the original
                 @semantic(gap="Basis", codomain="family(self)")
                 @abstract_method
-                def basis(self):
+                def basis_disabled(self):
                     pass
 monkey_patch(Modules, sage.categories.modules.Modules)
 

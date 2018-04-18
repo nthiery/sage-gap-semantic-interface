@@ -555,7 +555,7 @@ class GAPParent(GAPObject, Parent):
         if category is None:
             structure = retrieve_structure_of_gap_handle(self.gap())
             assert structure.cls is GAPParent
-        super(GAPParent, self)._refine_category_(structure.category)
+        super(GAPParent, self)._refine_category_(category)
 
     class Element(GAPObject, Element):
         def __init__(self, parent, gap_handle):

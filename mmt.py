@@ -443,7 +443,7 @@ class Magmas:
             @abstract_method
             def one(self):
                 # Generates automatically in the XXX.GAP category
-                # def zero(self): return self(self.gap().One())
+                # def one(self): return self(self.gap().One())
                 pass
 
         class ElementMethods:

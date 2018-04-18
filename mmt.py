@@ -213,7 +213,7 @@ class MMTWrapMethod(MMTWrap):
                 return self(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
         elif codomain == "family(self)":
             def wrapper_method(self, *args):
-                return Family(list(getattr(libgap, gap_name)(*gap_handle((self,)+args))))
+                return Family([self(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))])
         elif codomain == "list_of_self":
             def wrapper_method(self, *args):
                 return [self(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))]

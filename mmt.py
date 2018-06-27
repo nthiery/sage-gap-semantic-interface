@@ -429,6 +429,7 @@ monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 @semantic(mmt="Magma", gap="IsMagma", variant="multiplicative")
 class Magmas:
     class ElementMethods:
+        one = semantic(mmt="neutral", gap="One", codomain="self")(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
         @semantic(mmt="*", gap=r"\*", codomain="parent") #, operator="*"
         @abstract_method
         def _mul_(self, other):
@@ -440,12 +441,13 @@ class Magmas:
             # Defined in NeutralElementLeft
             # - How to retrieve it?
             # - How to detect that this is a method into self?
-            @semantic(mmt="neutral", gap="One", codomain="self")
-            @abstract_method
-            def one(self):
-                # Generates automatically in the XXX.GAP category
-                # def one(self): return self(self.gap().One())
-                pass
+            #one = semantic(mmt="neutral", gap="One", codomain="self")(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
+            #@abstract_method
+            #def one(self):
+            #    # Generates automatically in the XXX.GAP category
+            #    # def one(self): return self(self.gap().One())
+            #    pass
+            pass
 
         class ElementMethods:
             @semantic(mmt="inverse", gap="Inverse", codomain="parent")

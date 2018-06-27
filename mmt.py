@@ -183,7 +183,8 @@ class MMTWrapMethod(MMTWrap):
         self.codomain = codomain
         if isinstance(f, AbstractMethod):
             f = f._f
-        self.arity = f.__code__.co_argcount
+        argspec = sage.misc.sageinspect.sage_getargspec(f)
+        self.arity = len(argspec.args)
 
     def generate_code(self, mmt_theory):
         codomain = self.codomain

@@ -106,7 +106,7 @@ form; this is the occasion to showcase the use of a GAP morphism::
     sage: phi.domain() == H    # is?
     True
     sage: HH = phi.codomain(); HH
-    <transformation monoid of degree 6 with 2 generators>
+    <transformation monoid of size 6, degree 6 with 2 generators>
 
     sage: C = HH.cayley_graph()
     sage: C.vertices()                         # random
@@ -124,18 +124,18 @@ form; this is the occasion to showcase the use of a GAP morphism::
     [<identity ...>, m1, m1*m2, m1*m2*m1, m2, m2*m1]
 
     sage: sorted(C.edges(),    key=str)
-    [(<identity ...>, m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
-     (<identity ...>, m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] )),
-     (m1*m2*m1, m1*m2*m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
-     (m1*m2*m1, m1*m2*m1, Transformation( [ 3, 4, 3, 4, 6, 6 ] )),
-     (m1*m2, m1*m2*m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
-     (m1*m2, m1*m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] )),
-     (m1, m1*m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] )),
-     (m1, m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
-     (m2*m1, m1*m2*m1, Transformation( [ 3, 4, 3, 4, 6, 6 ] )),
-     (m2*m1, m2*m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
-     (m2, m2*m1, Transformation( [ 2, 2, 5, 6, 5, 6 ] )),
-     (m2, m2, Transformation( [ 3, 4, 3, 4, 6, 6 ] ))]
+    [(<identity ...>, m1, 0),
+      (<identity ...>, m2, 1),
+      (m1*m2*m1, m1*m2*m1, 0),
+      (m1*m2*m1, m1*m2*m1, 1),
+      (m1*m2, m1*m2*m1, 0),
+      (m1*m2, m1*m2, 1),
+      (m1, m1*m2, 1),
+      (m1, m1, 0),
+      (m2*m1, m1*m2*m1, 1),
+      (m2*m1, m2*m1, 0),
+      (m2, m2*m1, 0),
+      (m2, m2, 1)]
 
 
 Let's construct a variety of GAP parents to check that they pass all
@@ -161,7 +161,7 @@ reasonably as native Sage parents::
     sage: F = mygap.FiniteField(3); F
     GF(3)
     sage: F.category()
-    Category of finite g a p fields
+    Category of finite enumerated g a p fields
     sage: TestSuite(F).run(skip=skip) # not tested
 
 Exploring functionalities from the Semigroups package::
@@ -361,7 +361,7 @@ gap_category_to_structure = {}
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
 import sage.libs.gap.gap_functions
-sage.libs.gap.gap_functions.common_gap_functions.extend(
+sage.libs.gap.gap_functions.common_gap_functions.union(
     (["FreeMonoid", "IsRTrivial", "GreensJClasses", "GreensRClasses", "GreensLClasses", "GreensDClasses",
        "IsField", "FiniteField","LieAlgebra", "FullMatrixAlgebra", "ZmodnZ", "ApplicableMethod",
       "GeneratorsOfMonoid", "GeneratorsOfSemigroup",
@@ -383,7 +383,7 @@ def GAP(gap_handle):
 
         sage: from mygap import GAP
         sage: it = GAP(libgap([1,3,2]).Iterator())
-        sage: for x in it: print x
+        sage: for x in it: print(x)
         1
         3
         2
@@ -555,6 +555,7 @@ class GAPParent(GAPObject, Parent):
         if category is None:
             structure = retrieve_structure_of_gap_handle(self.gap())
             assert structure.cls is GAPParent
+            category = structure.category
         super(GAPParent, self)._refine_category_(category)
 
     class Element(GAPObject, Element):
@@ -623,7 +624,7 @@ class GAPIterator(GAPObject):
             ...
             StopIteration
 
-            sage: for x in GAPIterator(l.Iterator()): print x
+            sage: for x in GAPIterator(l.Iterator()): print(x)
             1
             3
             2
@@ -726,9 +727,13 @@ def retrieve_structure_of_gap_handle(self):
 
         sage: from mygap import mygap
         sage: mygap.FiniteField(3).category()
-        Category of finite g a p fields
+        Category of finite enumerated g a p fields
+
+        sage: mygap.eval("Integers") in Rings().Commutative().GAP().Infinite()
+        True
         sage: mygap.eval("Integers").category()
-        Category of infinite commutative g a p rings
+        Join of Category of commutative rings and Category of g a p monoids and Category of commutative g a p magmas and Category of finite dimensional g a p modules with basis over rings and Category of infinite g a p sets
+
         sage: mygap.eval("PositiveIntegers").category()
         Category of infinite commutative associative unital additive commutative additive associative distributive g a p magmas and additive magmas
         sage: mygap.eval("Cyclotomics").category()

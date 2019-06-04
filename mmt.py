@@ -30,14 +30,20 @@ Missing features
 ================
 
 We would want to use F.random_element from ``Sets.GAP``, not
-:class:`FiniteEnumeratedSets`::
+:class:`ModulesWithBasis` or :class:`FiniteEnumeratedSets`::
 
     sage: F = mygap.FiniteField(3); F
     GF(3)
     sage: F.category()
-    Category of finite g a p fields
+    Category of finite enumerated g a p fields
     sage: F.random_element.__module__
-    'sage.categories.finite_enumerated_sets'
+    'sage.categories.modules_with_basis'
+
+Other issue: in GAP, a ring is considered as a (free) module over
+itself, but not in Sage:
+
+    sage: F in Modules(Rings()).WithBasis()
+    True
 
 We need a way (input syntax and datastructure) to represent various
 types for the codomain (either passed to @semantic or recovered from
@@ -429,11 +435,13 @@ monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 @semantic(mmt="Magma", gap="IsMagma", variant="multiplicative")
 class Magmas:
     class ElementMethods:
-        one = semantic(mmt="neutral", gap="One", codomain="self")(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
         @semantic(mmt="*", gap=r"\*", codomain="parent") #, operator="*"
         @abstract_method
         def _mul_(self, other):
             pass
+
+    class ParentMethods:
+        one = semantic(mmt="neutral", gap="One", codomain="self")(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
 
     @semantic(mmt="NeutralElement", gap="IsMagmaWithOne")
     class Unital:
@@ -635,19 +643,19 @@ class LieAlgebras(Category_over_base_ring):
         sage: L
         <Lie algebra over Rationals, with 2 generators>
         sage: L.category()
-        Category of finite dimensional g a p lie algebras with basis over Rational Field
+        Category of finite dimensional g a p lie algebras with basis over rings
         sage: Z = L.lie_center()
         sage: Z
         <Lie algebra of dimension 0 over Rationals>
         sage: Z.category()
-        Category of finite finite dimensional commutative associative g a p lie algebras with basis over Rational Field
+        Category of finite finite dimensional commutative associative g a p lie algebras with basis over rings
         sage: L     # we know more after computing the center!
         <Lie algebra of dimension 3 over Rationals>
         sage: CZ = L.lie_centralizer(Z)
         sage: CZ
         <Lie algebra of dimension 3 over Rationals>
         sage: CZ.category()
-        Category of finite dimensional g a p lie algebras with basis over Rational Field
+        Category of finite dimensional g a p lie algebras with basis over rings
         sage: CL = L.lie_centralizer(L)
         sage: CL
         <Lie algebra of dimension 0 over Rationals>

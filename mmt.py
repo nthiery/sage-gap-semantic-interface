@@ -40,10 +40,20 @@ We would want to use F.random_element from ``Sets.GAP``, not
     'sage.categories.modules_with_basis'
 
 Other issue: in GAP, a ring is considered as a (free) module over
-itself, but not in Sage:
+itself, and GAP fields are set according to be vector spaces with
+basis; see Fields.GAP.extra_super_categories::
 
-    sage: F in Modules(Rings()).WithBasis()
+    sage: F in VectorSpaces(Fields()).WithBasis()
     True
+
+This is unlike Sage's fields::
+
+    sage: GF(3) in VectorSpaces(Fields()).WithBasis()
+    False
+
+And can cause problems::
+
+    sage: F.random_element()
 
 We need a way (input syntax and datastructure) to represent various
 types for the codomain (either passed to @semantic or recovered from

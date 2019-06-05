@@ -180,8 +180,8 @@ reasonably as native Sage parents::
 
     sage: F = mygap.eval("Cyclotomics"); F
     Cyclotomics
-    sage: F.category()
-    Category of infinite g a p fields
+    sage: F in Fields().Infinite().GAP()
+    True
     sage: F.zero()        # workaround https://github.com/gap-system/gap/issues/517
     0
     sage: TestSuite(F).run(skip=skip)
@@ -194,8 +194,8 @@ reasonably as native Sage parents::
 
     sage: F = mygap.FiniteField(3); F
     GF(3)
-    sage: F.category()
-    Category of finite enumerated g a p fields
+    sage: F in Fields().Finite().Enumerated().GAP()
+    True
     sage: TestSuite(F).run(skip=skip) # not tested
 
 Exploring functionalities from the Semigroups package::
@@ -450,8 +450,8 @@ class MyGap(object):
             Cyclotomics
             sage: C.gap().IsField()
             true
-            sage: C.category()
-            Category of infinite g a p fields
+            sage: C in Fields().Infinite().GAP()
+            True
         """
         return GAP(libgap.eval(code))
 
@@ -762,8 +762,8 @@ def retrieve_structure_of_gap_handle(self):
         (Category of objects, <class 'mygap.GAPIterator'>)
 
         sage: from mygap import mygap
-        sage: mygap.FiniteField(3).category()
-        Category of finite enumerated g a p fields
+        sage: mygap.FiniteField(3) in Fields().Finite().Enumerated().GAP()
+        True
 
         sage: mygap.eval("Integers") in Rings().Commutative().GAP().Infinite()
         True
@@ -772,8 +772,8 @@ def retrieve_structure_of_gap_handle(self):
 
         sage: mygap.eval("PositiveIntegers").category()
         Category of infinite commutative associative unital additive commutative additive associative distributive g a p magmas and additive magmas
-        sage: mygap.eval("Cyclotomics").category()
-        Category of infinite g a p fields
+        sage: mygap.eval("Cyclotomics") in Fields().Infinite().GAP()
+        True
     """
     structure = Structure(GAPObject, Objects())
     gap_categories = [str(cat) for cat in self.CategoriesOfObject()]

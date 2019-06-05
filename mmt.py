@@ -93,6 +93,9 @@ Z
 """
 import inspect
 import itertools
+import textwrap
+from sage.misc.misc import attrcall
+from functools import partial
 from recursive_monkey_patch import monkey_patch
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
@@ -143,6 +146,66 @@ class MMTWrap:
                  module=None):
         self.mmt_name = mmt_name
         self.variant = variant
+
+class DependentType:
+    @abstract_method
+    def __call__(self, value):
+        """
+        Return the type for this value
+        """
+
+class Type(DependentType):
+    def __init__(self, type):
+        self.type = type
+
+    def __call__(self, value):
+        return self.type
+
+import mygap
+
+Any  = Type(mygap.GAP)
+Sage = Type(attrcall("sage"))
+def GAPFacade(handle):
+    result = GAP(handle)
+    result._refine_category_(result.category().Facade())
+    return result
+Facade = Type(GAPFacade)
+
+class SelfClass(DependentType): # Singleton
+    def __call__(self, value):
+        return value
+Self = SelfClass()
+
+class ParentOfSelfClass(DependentType): # Singleton
+    def __call__(self, value):
+        return value.parent()
+ParentOfSelf = ParentOfSelfClass()
+
+class Iterator(DependentType):
+    def __init__(self, value_type=Any):
+        self.value_type = value_type
+
+    @staticmethod
+    def from_handle(value_type, handle):
+        return itertools.imap(value_type, GAPIterator(handle))
+
+    def __call__(self, value):
+        return partial(self.from_handle, self.value_type(value))
+
+class Collection(DependentType):
+    def __init__(self, container_type, value_type=Any):
+        self.container_type = container_type
+        self.value_type = value_type
+
+    def from_handle(self, value_type, handle):
+        return self.container_type(value_type(x) for x in handle)
+
+    def __call__(self, value):
+        return partial(self.from_handle, self.value_type(value))
+
+List    = partial(Collection, list)
+Set     = partial(Collection, set)
+Family  = partial(Collection, sage.sets.family.Family)
 
 def gap_handle(x):
     """
@@ -215,37 +278,22 @@ class MMTWrapMethod(MMTWrap):
                     assert self.arity == arity
                 # TODO: cleanup this logic
                 if all(domain == codomain for domain in domains):
-                    codomain = "parent"
+                    codomain = ParentOfSelf
                     assert self.codomain is None or codomain == self.codomain
         assert arity is not None
         assert gap_name is not None
-        if codomain == list:
-            def wrapper_method(self, *args):
-                return [self._wrap(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))]
-        elif codomain == "parent":
-            def wrapper_method(self, *args):
-                return self.parent()(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
-        elif codomain == "self":
-            def wrapper_method(self, *args):
-                return self(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
-        elif codomain == "family(self)":
-            def wrapper_method(self, *args):
-                return Family([self(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))])
-        elif codomain == "list_of_self":
-            def wrapper_method(self, *args):
-                return [self(x) for x in getattr(libgap, gap_name)(*gap_handle((self,)+args))]
-        elif codomain == "iter_of_self":
-            def wrapper_method(self, *args):
-                from mygap import GAPIterator
-                return itertools.imap(self, GAPIterator(getattr(libgap, gap_name)(*gap_handle((self,)+args))))
-        elif codomain == "sage":
-            def wrapper_method(self, *args):
-                return getattr(libgap, gap_name)(*gap_handle((self,)+args)).sage()
-        else:
-            assert codomain is None
-            def wrapper_method(self, *args):
-                return self._wrap(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
+        if codomain is None:
+            codomain = Any
+        assert isinstance(codomain, DependentType)
+        def wrapper_method(self, *args):
+            return codomain(self)(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
         wrapper_method.__name__ = self.__imfunc__.__name__
+        wrapper_method.__doc__ = textwrap.dedent("""
+        Wrapper around GAP's method {}
+
+        arity: {}
+        codomain: {}
+        """).format(gap_name, arity, codomain)
         return wrapper_method
 
 nested_classes_of_categories = [
@@ -346,22 +394,22 @@ def semantic(mmt=None, variant=None, codomain=None, gap=None, gap_negation=None,
 @semantic(mmt="Set")
 class Sets:
     class ParentMethods:
-        @semantic(gap="IsFinite", codomain="sage")
+        @semantic(gap="IsFinite", codomain=Sage)
         @abstract_method
         def is_finite(self):
             pass
 
-        @semantic(gap="Size", codomain="sage")
+        @semantic(gap="Size", codomain=Sage)
         @abstract_method
         def cardinality(self):
             pass
 
-        @semantic(gap="Representative", codomain="self")
+        @semantic(gap="Representative", codomain=Self)
         @abstract_method
         def _an_element_(self):
             pass
 
-        @semantic(gap="Random", codomain="self")
+        @semantic(gap="Random", codomain=Self)
         @abstract_method
         def random_element(self):
             pass
@@ -369,7 +417,7 @@ class Sets:
     @semantic(mmt="TODO", gap="IsFinite")
     class Finite:
         class ParentMethods:
-            @semantic(gap="List", codomain="list_of_self")
+            @semantic(gap="List", codomain=List(Self))
             @abstract_method
             def list(self):
                 pass
@@ -382,13 +430,21 @@ monkey_patch(Sets, sage.categories.sets_cat.Sets)
 @semantic(mmt="TODO")
 class EnumeratedSets:
     class ParentMethods:
-        @semantic(gap="IsIterator", codomain="iter_of_self")
+        @semantic(gap="Iterator", codomain=Iterator(Self))
         @abstract_method
         def __iter__(self):
             pass
     @semantic(gap_sub="IsList")
     class Finite:
         pass
+
+    @semantic()
+    class Facade(CategoryWithAxiom):
+        class ParentMethods:
+            @semantic(gap="Iterator", codomain=Iterator(Any))
+            @abstract_method
+            def __iter__(self):
+                pass
 monkey_patch(EnumeratedSets, sage.categories.enumerated_sets.EnumeratedSets)
 
 # class Lists:
@@ -403,7 +459,7 @@ monkey_patch(EnumeratedSets, sage.categories.enumerated_sets.EnumeratedSets)
 @semantic(mmt="Magma", variant="additive")
 class AdditiveMagmas:
     class ElementMethods:
-        @semantic(mmt=u"∘", gap=r"\+", codomain="parent") #, operator="+")
+        @semantic(mmt=u"∘", gap=r"\+", codomain=ParentOfSelf) #, operator="+")
         @abstract_method
         def _add_(self, other):
             pass
@@ -414,7 +470,7 @@ class AdditiveMagmas:
             # Defined in NeutralElementLeft
             # - How to retrieve it?
             # - How to detect that this is a method into self?
-            @semantic(mmt="neutral", gap="Zero", codomain="self")
+            @semantic(mmt="neutral", gap="Zero", codomain=Self)
             @abstract_method
             def zero(self):
                 # Generates automatically in the XXX.GAP category
@@ -422,7 +478,7 @@ class AdditiveMagmas:
                 pass
 
         class ElementMethods:
-            @semantic(gap=r"\-", codomain="parent")
+            @semantic(gap=r"\-", codomain=ParentOfSelf)
             @abstract_method
             def _sub_(self, other):
                 # Generates automatically
@@ -430,7 +486,7 @@ class AdditiveMagmas:
                 pass
 
             # TODO: Check Additive Inverse
-            @semantic(gap="AdditiveInverse", codomain="parent")
+            @semantic(gap="AdditiveInverse", codomain=ParentOfSelf)
             @abstract_method
             def __neg__(self):
                 # Generates automatically
@@ -445,13 +501,13 @@ monkey_patch(AdditiveMagmas, sage.categories.additive_magmas.AdditiveMagmas)
 @semantic(mmt="Magma", gap="IsMagma", variant="multiplicative")
 class Magmas:
     class ElementMethods:
-        @semantic(mmt="*", gap=r"\*", codomain="parent") #, operator="*"
+        @semantic(mmt="*", gap=r"\*", codomain=ParentOfSelf) #, operator="*"
         @abstract_method
         def _mul_(self, other):
             pass
 
     class ParentMethods:
-        one = semantic(mmt="neutral", gap="One", codomain="self")(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
+        one = semantic(mmt="neutral", gap="One", codomain=Self)(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
 
     @semantic(mmt="NeutralElement", gap="IsMagmaWithOne")
     class Unital:
@@ -459,7 +515,7 @@ class Magmas:
             # Defined in NeutralElementLeft
             # - How to retrieve it?
             # - How to detect that this is a method into self?
-            #one = semantic(mmt="neutral", gap="One", codomain="self")(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
+            #one = semantic(mmt="neutral", gap="One", codomain=Self)(sage.categories.magmas.Magmas.Unital.ParentMethods.__dict__['one'])
             #@abstract_method
             #def one(self):
             #    # Generates automatically in the XXX.GAP category
@@ -468,7 +524,7 @@ class Magmas:
             pass
 
         class ElementMethods:
-            @semantic(mmt="inverse", gap="Inverse", codomain="parent")
+            @semantic(mmt="inverse", gap="Inverse", codomain=ParentOfSelf)
             @abstract_method
             def __invert__(self): # TODO: deal with "fail"
                 pass
@@ -509,7 +565,7 @@ monkey_patch(AdditiveSemigroups, sage.categories.additive_semigroups.AdditiveSem
 @semantic(mmt="Semigroup", variant="multiplicative", gap="IsAssociative")
 class Semigroups:
     class ParentMethods:
-        @semantic(gap="GeneratorsOfSemigroup", codomain="list_of_self") # TODO: tuple_of_self
+        @semantic(gap="GeneratorsOfSemigroup", codomain=Family(Self))
         @abstract_method
         def semigroup_generators(self):
             pass
@@ -537,22 +593,22 @@ class Semigroups:
     @semantic()
     class Finite:
         class ParentMethods:
-            @semantic(gap="GreensJClasses")
+            @semantic(gap="GreensJClasses", codomain=Facade)
             @abstract_method
             def j_classes(self):
                 pass
 
-            @semantic(gap="GreensLClasses")
+            @semantic(gap="GreensLClasses", codomain=Facade)
             @abstract_method
             def l_classes(self):
                 pass
 
-            @semantic(gap="GreensRClasses")
+            @semantic(gap="GreensRClasses", codomain=Facade)
             @abstract_method
             def r_classes(self):
                 pass
 
-            @semantic(gap="GreensDClasses")
+            @semantic(gap="GreensDClasses", codomain=Facade)
             @abstract_method
             def d_classes(self):
                 pass
@@ -575,7 +631,7 @@ class Semigroups:
     @semantic(gap="IsMonoidAsSemigroup")
     class Unital:
         class ParentMethods:
-            @semantic(gap="GeneratorsOfMonoid", codomain="family(self)")
+            @semantic(gap="GeneratorsOfMonoid", codomain=Family(Self))
             @abstract_method
             def monoid_generators(self):
                 pass
@@ -590,17 +646,27 @@ class Semigroups:
 
 monkey_patch(Semigroups, sage.categories.semigroups.Semigroups)
 
+@semantic(gap="IsGreensClass")
+class GreensClass(Category):
+    def super_categories(self):
+        return [sage.categories.sets_cat.Sets()]
+
+    class ParentMethods:
+        @semantic(gap="SchutzenbergerGroup")
+        def schutzenberger_group(self):
+            pass
+
 @semantic(mmt="Group", variant="multiplicative")
 class Groups:
 
     class ParentMethods:
 
-        @semantic(gap="IsAbelian", codomain="sage")
+        @semantic(gap="IsAbelian", codomain=Sage)
         @abstract_method
         def is_abelian(self):
             pass
 
-        @semantic(gap="GeneratorsOfGroup", codomain="list_of_self") # TODO: tuple_of_self
+        @semantic(gap="GeneratorsOfGroup", codomain=Family(Self))
         @abstract_method
         def group_generators(self):
             pass
@@ -620,7 +686,7 @@ class Modules:
         @semantic(gap="IsFiniteDimensional")
         class FiniteDimensional:
             class ParentMethods:
-                @semantic(gap="Dimension", codomain="sage")
+                @semantic(gap="Dimension", codomain=Sage)
                 @abstract_method # FIXME: this overrides ModulesWithBasis.ParentMethods.dimension
                 def dimension(self):
                     pass
@@ -628,7 +694,7 @@ class Modules:
                 # TODO: find an idiom when you want to specify the semantic of
                 # a method in a subcategory of where it's defined, and don't
                 # want to override the original
-                @semantic(gap="Basis", codomain="family(self)")
+                @semantic(gap="Basis", codomain=Family(Self))
                 @abstract_method
                 def basis_disabled(self):
                     pass
@@ -724,7 +790,7 @@ class LieAlgebras(Category_over_base_ring):
 
     class ParentMethods:
 
-        @semantic(mmt="TODO", gap="GeneratorsOfAlgebra", codomain="list_of_self") # TODO: tuple_of_self
+        @semantic(mmt="TODO", gap="GeneratorsOfAlgebra", codomain=List(Self)) # TODO: tuple_of_self
         @abstract_method
         def lie_algebra_generators(self):
             r"""
@@ -776,31 +842,31 @@ class LieAlgebras(Category_over_base_ring):
         def cartan_subalgebra():
             pass
 
-        @semantic(mmt="TODO", gap="LieDerivedSeries", codomain=list)
+        @semantic(mmt="TODO", gap="LieDerivedSeries", codomain=List())
         def lie_derived_series():
             pass
 
-        @semantic(mmt="TODO", gap="LieLowerCentralSeries", codomain=list)
+        @semantic(mmt="TODO", gap="LieLowerCentralSeries", codomain=List())
         def lie_lower_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="LieUpperCentralSeries", codomain=list)
+        @semantic(mmt="TODO", gap="LieUpperCentralSeries", codomain=List())
         def lie_upper_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieAbelian", codomain="sage")
+        @semantic(mmt="TODO", gap="IsLieAbelian", codomain=Type(bool))
         def is_lie_abelian():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain="sage")
+        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain=Type(bool))
         def is_lie_nilpotent():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieSolvable", codomain="sage")
+        @semantic(mmt="TODO", gap="IsLieSolvable", codomain=Type(bool))
         def is_lie_solvable():
             pass
 
-        @semantic(mmt="TODO", gap="SemiSimpleType", codomain="sage")
+        @semantic(mmt="TODO", gap="SemiSimpleType", codomain=Sage)
         def semi_simple_type():
             pass
 
@@ -814,7 +880,7 @@ class LieAlgebras(Category_over_base_ring):
         def root_system():
             pass
 
-        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain="sage")
+        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain=Type(bool))
         def is_restricted_lie_algebra():
             pass
 

@@ -946,14 +946,11 @@ class Category_over_base_ring:
         return cls(sage.categories.rings.Rings())
 monkey_patch(Category_over_base_ring, sage.categories.category_types.Category_over_base_ring)
 
-# class Fields:
-#     class GAP(CategoryWithAxiom):
-#         def extra_super_categories(self):
-#             return [sage.categories.modules.Modules(sage.categories.rings.Rings()).FiniteDimensional()]
+@semantic()
+class Fields:
+    @semantic(gap="Characteristic", codomain=Sage)
+    @abstract_method
+    def characteristic(self):
+        pass
 
-#     class Finite:
-#         class GAP(CategoryWithAxiom):
-#             def extra_super_categories(self):
-#                 return [sage.categories.enumerated_sets.EnumeratedSets()]
-
-# monkey_patch(Fields, sage.categories.fields.Fields)
+monkey_patch(Fields, sage.categories.fields.Fields)

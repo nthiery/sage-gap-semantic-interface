@@ -34,16 +34,21 @@ We would want to use F.random_element from ``Sets.GAP``, not
 
     sage: F = mygap.FiniteField(3); F
     GF(3)
-    sage: F.category()
-    Category of finite enumerated g a p fields
+    sage: F in Fields().Finite().Enumerated().GAP()
+    True
     sage: F.random_element.__module__
     'sage.categories.modules_with_basis'
+    sage: F.random_element()
+    Traceback (most recent call last):
+    ...
+    AttributeError: ...
 
-Other issue: in GAP, a ring is considered as a (free) module over
-itself, and GAP fields are set according to be vector spaces with
-basis; see Fields.GAP.extra_super_categories::
+Other issue: in GAP, a ring is considered as a free module over
+itself, and GAP fields are set according to be modules over rings with
+basis (see the IsFreeLeftModule)::
 
-    sage: F in VectorSpaces(Fields()).WithBasis()
+    sage: from sage.categories.modules import Modules
+    sage: F in Modules(Rings()).WithBasis()
     True
 
 This is unlike Sage's fields::
@@ -51,22 +56,9 @@ This is unlike Sage's fields::
     sage: GF(3) in VectorSpaces(Fields()).WithBasis()
     False
 
-And can cause problems::
 
-    sage: F.random_element()
-
-We need a way (input syntax and datastructure) to represent various
-types for the codomain (either passed to @semantic or recovered from
-mmt). Examples:
-
-    codomain=bool
-    codomain=sage  -> call .sage
-    codomain=self
-    codomain=parent
-    codomain=tuple(self)
-    codomain=list(self)
-
-
+We would want to recover some of the semantic, notably the codomain,
+from mmt:
 
 >> namespace = XXXXX("u'http://latin.omdoc.org/math")
 >> M = namespace.get_theory("Monoid")
@@ -954,14 +946,14 @@ class Category_over_base_ring:
         return cls(sage.categories.rings.Rings())
 monkey_patch(Category_over_base_ring, sage.categories.category_types.Category_over_base_ring)
 
-class Fields:
-    class GAP(CategoryWithAxiom):
-        def extra_super_categories(self):
-            return [sage.categories.modules.Modules(sage.categories.rings.Rings()).FiniteDimensional()]
+# class Fields:
+#     class GAP(CategoryWithAxiom):
+#         def extra_super_categories(self):
+#             return [sage.categories.modules.Modules(sage.categories.rings.Rings()).FiniteDimensional()]
 
-    class Finite:
-        class GAP(CategoryWithAxiom):
-            def extra_super_categories(self):
-                return [sage.categories.enumerated_sets.EnumeratedSets()]
+#     class Finite:
+#         class GAP(CategoryWithAxiom):
+#             def extra_super_categories(self):
+#                 return [sage.categories.enumerated_sets.EnumeratedSets()]
 
-monkey_patch(Fields, sage.categories.fields.Fields)
+# monkey_patch(Fields, sage.categories.fields.Fields)

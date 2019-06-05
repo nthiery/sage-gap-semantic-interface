@@ -148,14 +148,22 @@ class MMTWrap:
         self.variant = variant
 
 class DependentType:
+    name = "a Type"
     @abstract_method
     def __call__(self, value):
         """
         Return the type for this value
         """
+    def __init__(self, name=None):
+        if name is not None:
+            self.name = name
 
-class Type(DependentType):
-    def __init__(self, type):
+    def __repr__(self):
+        return self.name
+
+class ConstantType(DependentType):
+    def __init__(self, type, name=None):
+        DependentType.__init__(self, name)
         self.type = type
 
     def __call__(self, value):
@@ -163,27 +171,33 @@ class Type(DependentType):
 
 import mygap
 
-Any  = Type(mygap.GAP)
-Sage = Type(attrcall("sage"))
+Any  = ConstantType(mygap.GAP, name="Any")
+Sage = ConstantType(attrcall("sage"), name="Sage")
 def GAPFacade(handle):
     result = GAP(handle)
     result._refine_category_(result.category().Facade())
     return result
-Facade = Type(GAPFacade)
+Facade = ConstantType(GAPFacade, name="Facade")
 
 class SelfClass(DependentType): # Singleton
+    name = "Self"
     def __call__(self, value):
         return value
 Self = SelfClass()
 
 class ParentOfSelfClass(DependentType): # Singleton
+    name = "ParentOfSelf"
     def __call__(self, value):
         return value.parent()
 ParentOfSelf = ParentOfSelfClass()
 
 class Iterator(DependentType):
+    name = "Iterator"
     def __init__(self, value_type=Any):
         self.value_type = value_type
+
+    def __repr__(self):
+        return "{}({})".format(self.name, self.value_type)
 
     @staticmethod
     def from_handle(value_type, handle):
@@ -192,20 +206,29 @@ class Iterator(DependentType):
     def __call__(self, value):
         return partial(self.from_handle, self.value_type(value))
 
-class Collection(DependentType):
-    def __init__(self, container_type, value_type=Any):
+class Collection(Iterator):  # cheating a bit ...
+    def __init__(self, container_type, value_type=Any, name=None):
+        DependentType.__init__(self, name=name)
         self.container_type = container_type
         self.value_type = value_type
 
     def from_handle(self, value_type, handle):
         return self.container_type(value_type(x) for x in handle)
 
-    def __call__(self, value):
-        return partial(self.from_handle, self.value_type(value))
+List    = partial(Collection, list, name="List")
+Set     = partial(Collection, set,  name="Set")
+Family  = partial(Collection, sage.sets.family.Family, name="Family")
 
-List    = partial(Collection, list)
-Set     = partial(Collection, set)
-Family  = partial(Collection, sage.sets.family.Family)
+"""
+    sage: Any
+    Any
+    sage: Self
+    Self
+    sage: ParentOfSelf
+    ParentOfSelf
+    sage: Family(Iterator(Set(List(Self))))
+    Family(Iterator(Set(List(Self))))
+"""
 
 def gap_handle(x):
     """
@@ -259,6 +282,9 @@ class MMTWrapMethod(MMTWrap):
         MMTWrap.__init__(self, mmt_name, **options)
         self.__imfunc__= f
         self.gap_name = gap_name
+        if not isinstance(codomain, DependentType) and codomain is not None:
+            assert isinstance(codomain, type)
+            codomain = ConstantType(codomain)
         self.codomain = codomain
         if isinstance(f, AbstractMethod):
             f = f._f
@@ -854,15 +880,15 @@ class LieAlgebras(Category_over_base_ring):
         def lie_upper_central_series():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieAbelian", codomain=Type(bool))
+        @semantic(mmt="TODO", gap="IsLieAbelian", codomain=bool)
         def is_lie_abelian():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain=Type(bool))
+        @semantic(mmt="TODO", gap="IsLieNilpotent", codomain=bool)
         def is_lie_nilpotent():
             pass
 
-        @semantic(mmt="TODO", gap="IsLieSolvable", codomain=Type(bool))
+        @semantic(mmt="TODO", gap="IsLieSolvable", codomain=bool)
         def is_lie_solvable():
             pass
 
@@ -880,7 +906,7 @@ class LieAlgebras(Category_over_base_ring):
         def root_system():
             pass
 
-        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain=Type(bool))
+        @semantic(mmt="TODO", gap="IsRestrictedLieAlgebra", codomain=bool)
         def is_restricted_lie_algebra():
             pass
 

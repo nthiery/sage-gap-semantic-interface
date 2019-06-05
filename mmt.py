@@ -601,17 +601,17 @@ class Semigroups:
         def __truediv__(self, relations):
             pass
 
-        @semantic(gap="IsLTrivial")
+        @semantic(gap="IsLTrivial", codomain=bool)
         @abstract_method
         def is_l_trivial(self):
             pass
 
-        @semantic(gap="IsRTrivial")
+        @semantic(gap="IsRTrivial", codomain=bool)
         @abstract_method
         def is_r_trivial(self):
             pass
 
-        @semantic(gap="IsDTrivial")
+        @semantic(gap="IsDTrivial", codomain=bool)
         @abstract_method
         def is_d_trivial(self):
             pass

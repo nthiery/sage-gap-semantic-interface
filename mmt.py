@@ -102,9 +102,9 @@ from sage.misc.abstract_method import abstract_method, AbstractMethod
 from sage.categories.category import Category
 from sage.categories.category_types import Category_over_base_ring
 from sage.categories.category_with_axiom import CategoryWithAxiom
-from sage.sets.family import Family
 from sage.libs.gap.libgap import libgap
 import sage.categories
+import sage.sets.family
 
 def mmt_lookup_signature(mmt_theory, mmt_name):
     """
@@ -173,11 +173,6 @@ import mygap
 
 Any  = ConstantType(mygap.GAP, name="Any")
 Sage = ConstantType(attrcall("sage"), name="Sage")
-def GAPFacade(handle):
-    result = GAP(handle)
-    result._refine_category_(result.category().Facade())
-    return result
-Facade = ConstantType(GAPFacade, name="Facade")
 
 class SelfClass(DependentType): # Singleton
     name = "Self"
@@ -185,11 +180,12 @@ class SelfClass(DependentType): # Singleton
         return value
 Self = SelfClass()
 
-class ParentOfSelfClass(DependentType): # Singleton
-    name = "ParentOfSelf"
-    def __call__(self, value):
-        return value.parent()
-ParentOfSelf = ParentOfSelfClass()
+class AttrcallClass(DependentType): # Singleton
+    def __init__(self, method, name=None):
+        DependentType.__init__(self, name=name)
+        self.__call__ = attrcall(method)
+FacadeFor    = AttrcallClass("facade_for", name="FacadeFor")
+ParentOfSelf = AttrcallClass("parent",     name="ParentOfSelf")
 
 class Iterator(DependentType):
     name = "Iterator"
@@ -201,7 +197,7 @@ class Iterator(DependentType):
 
     @staticmethod
     def from_handle(value_type, handle):
-        return itertools.imap(value_type, GAPIterator(handle))
+        return itertools.imap(value_type, mygap.GAPIterator(handle))
 
     def __call__(self, value):
         return partial(self.from_handle, self.value_type(value))
@@ -219,6 +215,19 @@ List    = partial(Collection, list, name="List")
 Set     = partial(Collection, set,  name="Set")
 Family  = partial(Collection, sage.sets.family.Family, name="Family")
 
+class Facade(DependentType):
+    def __init__(self, value_type):
+        DependentType.__init__(self, name="Facade")
+        self.value_type = value_type
+
+    def __call__(self, value):
+        return partial(self.from_handle, self.value_type(value))
+
+    def from_handle(self, value_type, handle):
+        result = mygap.GAP(handle)
+        result._refine_category_(result.category().Facade())
+        result.facade_for = lambda: value_type
+        return result
 """
     sage: Any
     Any
@@ -336,8 +345,6 @@ def generate_interface(cls, mmt=None, gap=None, gap_super=None, gap_sub=None, ga
     - ``mmt`` -- a string naming an mmt theory
     - ``gap`` -- a string naming a gap property/category
     """
-    import mygap
-
     # Fetch cls.GAP, creating it if needed
     try:
         # Can't use cls.GAP because of the binding behavior
@@ -448,12 +455,20 @@ class Sets:
             def list(self):
                 pass
 
+        @semantic()
+        class Facade(CategoryWithAxiom):
+            class ParentMethods:
+                @semantic(gap="List", codomain=List(FacadeFor))
+                @abstract_method
+                def list(self):
+                    pass
+
     @semantic(gap_negation="IsFinite")
     class Infinite:
         pass
 monkey_patch(Sets, sage.categories.sets_cat.Sets)
 
-@semantic(mmt="TODO")
+@semantic(mmt="TODO") # TODO gap=""????
 class EnumeratedSets:
     class ParentMethods:
         @semantic(gap="Iterator", codomain=Iterator(Self))
@@ -467,7 +482,7 @@ class EnumeratedSets:
     @semantic()
     class Facade(CategoryWithAxiom):
         class ParentMethods:
-            @semantic(gap="Iterator", codomain=Iterator(Any))
+            @semantic(gap="Iterator", codomain=Iterator(FacadeFor))
             @abstract_method
             def __iter__(self):
                 pass
@@ -619,22 +634,22 @@ class Semigroups:
     @semantic()
     class Finite:
         class ParentMethods:
-            @semantic(gap="GreensJClasses", codomain=Facade)
+            @semantic(gap="GreensJClasses", codomain=Facade(Facade(Self)))
             @abstract_method
             def j_classes(self):
                 pass
 
-            @semantic(gap="GreensLClasses", codomain=Facade)
+            @semantic(gap="GreensLClasses", codomain=Facade(Facade(Self)))
             @abstract_method
             def l_classes(self):
                 pass
 
-            @semantic(gap="GreensRClasses", codomain=Facade)
+            @semantic(gap="GreensRClasses", codomain=Facade(Facade(Self)))
             @abstract_method
             def r_classes(self):
                 pass
 
-            @semantic(gap="GreensDClasses", codomain=Facade)
+            @semantic(gap="GreensDClasses", codomain=Facade(Facade(Self)))
             @abstract_method
             def d_classes(self):
                 pass

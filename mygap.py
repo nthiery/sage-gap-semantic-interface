@@ -9,7 +9,8 @@ EXAMPLES:
 
 Some initialization::
 
-    sage: libgap.LoadPackage("semigroups")    # optional - semigroups Needed for some examples below
+    sage: libgap.LoadPackage("semigroups")    # optional - semigroups
+    #I  method installed for Matrix matches more than one declaration
     true
 
     sage: from mygap import mygap
@@ -63,8 +64,8 @@ We can now mix and match Sage and GAP elements::
     sage: C = cartesian_product([M, ZZ])
     sage: C.category()
     Category of Cartesian products of monoids
-    sage: C.an_element()
-    (<identity ...>, 1)
+    sage: C.an_element()               # optional - semigroups
+    (m1, 1)
 
     sage: x = cartesian_product([m1,3])
     sage: y = cartesian_product([m2,5])
@@ -137,6 +138,39 @@ form; this is the occasion to showcase the use of a GAP morphism::
       (m2, m2*m1, 0),
       (m2, m2, 1)]
 
+More examples of structure computations with finite semigroups::
+
+    sage: T = mygap.FullTransformationMonoid(4)
+
+    sage: T.structure_description_maximal_subgroups()
+    [ "1", "C2", "S3", "S4" ]
+
+    sage: T.j_classes()
+    [ <Green's D-class: IdentityTransformation>,
+      <Green's D-class: Transformation( [ 1, 2, 3, 1 ] )>,
+      <Green's D-class: Transformation( [ 2, 1, 2, 2 ] )>,
+      <Green's D-class: Transformation( [ 1, 1, 1, 1 ] )> ]
+
+    sage: R = T.r_classes()
+    sage: R
+    [ <Green's R-class: IdentityTransformation>,
+      ...
+      <Green's R-class: Transformation( [ 1, 1, 1, 1 ] )> ]
+
+    sage: C = R[1]; C
+    <Green's R-class: Transformation( [ 1, 2, 3, 1 ] )>
+    sage: C.category()
+    Category of facade finite g a p greens class
+    sage: C.cardinality()
+    24
+    sage: C.schutzenberger_group()
+    Group([ (1,2,3), (1,2) ])
+
+    sage: C[0]
+    Transformation( [ 1, 2, 3, 1 ] )
+    sage: C[0].parent()
+    <full transformation monoid of degree 4>
+
 
 Let's construct a variety of GAP parents to check that they pass all
 the generic tests; this means that they have a chance to behave
@@ -172,19 +206,18 @@ Exploring functionalities from the Semigroups package::
     True
 
     sage: classes = H.j_classes(); classes   # optional - semigroups
-    [ {m1*m2*m1}, {m2*m1}, {m1}, {m1*m2}, {m2}, {<identity ...>} ]
+    [ <Green's D-class: m1*m2*m1>, <Green's D-class: m1*m2>,
+      <Green's D-class: m1>, <Green's D-class: m2*m1>,
+      <Green's D-class: m2>, <Green's D-class: <identity ...>> ]
 
 That's nice::
 
     sage: classes.category()                 # optional - semigroups
-    Category of finite g a p sets
+    Category of facade finite enumerated g a p sets
     sage: c = classes[0]; c                  # optional - semigroups
-    {m1*m2*m1}
-
-That's not; we would want this to be a collection::
-
+    <Green's D-class: m1*m2*m1>
     sage: c.category()                       # optional - semigroups
-    Category of elements of [ {m1*m2*m1}, {m2*m1}, {m1}, {m1*m2}, {m2}, {<identity ...>} ]
+    Category of facade finite g a p greens class
 
     sage: pi1, pi2 = H.monoid_generators()
     sage: pi1^2 == pi1
@@ -571,6 +604,9 @@ class GAPParent(GAPObject, Parent):
             #    raise ValueError("Input not a GAP handle")
             Element.__init__(self, parent)
             GAPObject.__init__(self, gap_handle)
+
+        def forget_parent(self):
+            return GAP(self.gap())
 
 class GAPMorphism(GAPObject): # TODO: inherit from morphism and move the methods to the categories
     @cached_method

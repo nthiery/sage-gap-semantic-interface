@@ -142,7 +142,7 @@ More examples of structure computations with finite semigroups::
 
     sage: T = mygap.FullTransformationMonoid(4)
 
-    sage: T.structure_description_maximal_subgroups()
+    sage: T.structure_description_maximal_subgroups() # optional - semigroups
     [ "1", "C2", "S3", "S4" ]
 
     sage: T.j_classes()
@@ -163,7 +163,7 @@ More examples of structure computations with finite semigroups::
     Category of facade finite g a p greens class
     sage: C.cardinality()
     24
-    sage: C.schutzenberger_group()
+    sage: C.schutzenberger_group()      # optional - semigroups
     Group([ (1,2,3), (1,2) ])
 
     sage: C[0]

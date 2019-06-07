@@ -798,5 +798,6 @@ def retrieve_structure_of_gap_handle(self):
         structure.category = structure.category.Division()
     return structure
 
-import mmt
 #from mmt import LieAlgebras
+
+import sage_annotations

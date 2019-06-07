@@ -42,6 +42,6 @@ setup(
     ],
     keywords='SageMath, GAP',
     packages=find_packages(),
-    install_requires=['recursive-monkey-patch'], # 'Sage'
+    install_requires=['recursive-monkey-patch', 'sage-semantic-annotations'], # 'Sage'
     cmdclass = {'test': SageTest},
 )

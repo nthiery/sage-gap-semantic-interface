@@ -367,6 +367,7 @@ import textwrap
 from recursive_monkey_patch import monkey_patch
 from sage.misc.cachefunc import cached_method
 from sage.misc.nested_class import nested_pickle
+from sage.misc.misc import attrcall
 from sage.categories.category import Category
 from sage.categories.objects import Objects
 from sage.categories.sets_cat import Sets
@@ -688,56 +689,49 @@ class Structure:
     def __repr__(self):
         return repr((self.category, self.cls))
 
-def add(category=None, cls=object):
-    """
+    def add_category(self, category):
+        """
+        Add a category
 
-    EXAMPLES::
+        EXAMPLES::
 
-        sage: from mygap import add, Structure
-        sage: s = Structure(object, Objects())
-        sage: add(Magmas)(s)
-        sage: s.category
-        Category of magmas
-        sage: s.cls
-        <class 'mygap.GAPParent'>
-    """
-    assert category is None or issubclass(category, Category)
-    s = Structure(cls, category)
-    def add(structure):
-        if s.category is not None:
-            if not isinstance(s.category, Category):
-                s.category = s.category.an_instance()
-                if s.cls is object and s.category.is_subcategory(Sets()):
-                    s.cls = GAPParent
-            structure.category &= s.category
-        if s.cls is not None:
-            assert issubclass(s.cls, structure.cls)
-            structure.cls = s.cls
-    return add
+            sage: from mygap import Structure, GAPObject
+            sage: s = Structure(GAPObject, Objects())
+            sage: s.add_category(Magmas)
+            sage: s.category
+            Category of magmas
+            sage: s.cls
+            <class 'mygap.GAPParent'>
+        """
+        assert category is None or issubclass(category, Category)
+        if not isinstance(category, Category):
+            category = category.an_instance()
+        if self.cls is GAPObject and category.is_subcategory(Sets()):
+            self.cls = GAPParent
+        self.category &= category
 
-def add_axiom(axiom):
-    """
+    def add_class(self, cls):
+        """
 
-    EXAMPLES::
+        EXAMPLES::
 
-        sage: from mygap import add_axiom, Structure
-        sage: s = Structure(object, Magmas())
-        sage: add_axiom("Commutative")(s)
-        sage: s.category
-        Category of commutative magmas
-        sage: s.cls
-        <type 'object'>
-    """
-    def f(structure):
-        structure.category = structure.category._with_axiom(axiom)
-    return f
+            sage: from mygap import Structure, GAPObject, GAPMorphism
+            sage: s = Structure(GAPObject, Objects())
+            sage: s.add_class(GAPMorphism)
+            sage: s.category
+            Category of objects
+            sage: s.cls
+            <class 'mygap.GAPMorphism'>
+        """
+        assert issubclass(cls, self.cls)
+        self.cls = cls
 
 gap_category_to_structure = {
     # Note: Additive Magmas are always assumed to be associative and commutative in GAP
     ## "IsMagmaWithInversesIfNonzero"
-    "IsIterator": add(cls=GAPIterator),
+    "IsIterator":       attrcall("add_class", GAPIterator),
     # Cheating a bit: this should be IsMapping, which further requires IsTotal and IsSingleValued
-    "IsGeneralMapping": add(cls=GAPMorphism, category=Sets),
+    "IsGeneralMapping": attrcall("add_class", GAPMorphism),
 }
 
 true_properties_to_structure = {
@@ -754,7 +748,6 @@ true_properties_to_structure = {
 }
 
 false_properties_to_structure = {
-    #"IsFinite": add_axiom("Infinite"),
 }
 
 def fill_allignment_database(cls):
@@ -769,9 +762,9 @@ def fill_allignment_database(cls):
     gap_sub = cls._semantic.get("gap_sub", gap)
     gap_negation = cls._semantic.get("gap_negation")
     if gap_sub is not None:
-        gap_category_to_structure[gap_sub] = add(category=cls)
+        gap_category_to_structure[gap_sub] = attrcall("add_category", cls)
     if gap_negation is not None:
-        false_properties_to_structure[gap_negation] = add(category=cls)
+        false_properties_to_structure[gap_negation] = attrcall("add_category", cls)
 
 def retrieve_structure_of_gap_handle(self):
     """
@@ -868,8 +861,7 @@ def gap_handle(x):
 
     EXAMPLES::
 
-        sage: from mygap import mygap
-        sage: from mmt import gap_handle
+        sage: from mygap import mygap, gap_handle
         sage: h = libgap.GF(3)
         sage: F = mygap(h)
         sage: gap_handle(F) is h

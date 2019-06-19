@@ -727,8 +727,6 @@ class Structure:
         self.cls = cls
 
 gap_category_to_structure = {
-    # Note: Additive Magmas are always assumed to be associative and commutative in GAP
-    ## "IsMagmaWithInversesIfNonzero"
     "IsIterator":       attrcall("add_class", GAPIterator),
     # Cheating a bit: this should be IsMapping, which further requires IsTotal and IsSingleValued
     "IsGeneralMapping": attrcall("add_class", GAPMorphism),
@@ -736,15 +734,6 @@ gap_category_to_structure = {
 
 true_properties_to_structure = {
     #"IsGroupAsSemigroup": add_axiom("Inverse"), # Useful?
-
-    # Cheating: we don't have the LDistributive and RDistributive
-    # axioms, and the current infrastructure does not allow to make a
-    # "and" on two axioms
-    # "IsLDistributive": "Distributive"
-
-    # GAP's IsLieAlgebra is a filter to several properties,
-    # IsAlgebra, IsZeroSquareRing, and IsJacobianRing
-    #"IsJacobianRing": add(LieAlgebras(Rings()))
 }
 
 false_properties_to_structure = {
@@ -810,7 +799,10 @@ def retrieve_structure_of_gap_handle(self):
             if prop in false_properties_to_structure:
                 false_properties_to_structure[prop](structure)
 
-    # Special cases that can't be handled by the infrastructure
+    # Special cases that can't yet be handled by the infrastructure
+    # - We don't have the LDistributive and RDistributive
+    #   axioms, and the current infrastructure does not allow to make a
+    #   "and" on two axioms "IsLDistributive": "Distributive"
     if "IsLDistributive" in true_properties and "IsRDistributive" in true_properties:
         # Work around: C._with_axiom("Distributive") does not work
         structure.category = structure.category.Distributive()

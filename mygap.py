@@ -19,9 +19,9 @@ Let's construct a handle to a GAP permutation group::
 
     sage: G = mygap.Group(libgap.eval("[(1,2)(3,4), (5,6)]"))
 
-This "semantic" handle is automatically recognized as a Sage group::
+This "semantic" handle is automatically recognized as a finite Sage group::
 
-    sage: G in Groups()
+    sage: G in Groups().Finite()
     True
 
 and behaves as such::
@@ -361,6 +361,8 @@ Misc TODO
 - Merge libgap / mygap
 - Merging the code into Sage
 """
+import itertools
+import textwrap
 
 from recursive_monkey_patch import monkey_patch
 from sage.misc.cachefunc import cached_method
@@ -378,6 +380,7 @@ from sage.structure.element import Element
 from sage.structure.parent import Parent
 from sage.libs.gap.libgap import libgap
 from sage.libs.gap.element import GapElement
+from sage.categories.category_with_axiom import CategoryWithAxiom
 
 ##############################################################################
 # Initialization
@@ -389,8 +392,7 @@ import categories.objects
 import sage.categories.objects
 monkey_patch(categories.objects, sage.categories.objects)
 
-gap_category_to_structure = {}
-
+# Workaround until #27911 is merged
 # libgap does not know about several functions
 # This is a temporary workaround to let some of the tests run
 import sage.libs.gap.gap_functions
@@ -403,8 +405,6 @@ sage.libs.gap.gap_functions.common_gap_functions.union(
       "LieNormalizer", "IsLieNilpotent", "IsRestrictedLieAlgebra",
       r"\+", r"\-", r"\*", r"\/"
   ]))
-
-# harvest the semantic from the categories
 
 ##############################################################################
 # Code
@@ -456,6 +456,10 @@ class MyGap(object):
         return GAP(libgap.eval(code))
 
 mygap = MyGap()
+
+
+##############################################################################
+# Classes for semantic handles
 
 class GAPObject(object):
     def __init__(self, gap_handle, category=None):
@@ -669,6 +673,21 @@ class GAPIterator(GAPObject):
             raise StopIteration
         return self.gap().NextIterator()
 
+##############################################################################
+# Retrieving the structure (class + category) to use for a semantic
+# GAP handle from the properties of the underlying GAP object
+
+class Structure:
+    """
+    A pair class + caegory
+    """
+    def __init__(self, cls, category):
+        self.cls = cls
+        self.category = category
+
+    def __repr__(self):
+        return repr((self.category, self.cls))
+
 def add(category=None, cls=object):
     """
 
@@ -713,21 +732,13 @@ def add_axiom(axiom):
         structure.category = structure.category._with_axiom(axiom)
     return f
 
-class Structure:
-    def __init__(self, cls, category):
-        self.cls = cls
-        self.category = category
-
-    def __repr__(self):
-        return repr((self.category, self.cls))
-
-gap_category_to_structure.update({
+gap_category_to_structure = {
     # Note: Additive Magmas are always assumed to be associative and commutative in GAP
     ## "IsMagmaWithInversesIfNonzero"
     "IsIterator": add(cls=GAPIterator),
     # Cheating a bit: this should be IsMapping, which further requires IsTotal and IsSingleValued
     "IsGeneralMapping": add(cls=GAPMorphism, category=Sets),
-})
+}
 
 true_properties_to_structure = {
     #"IsGroupAsSemigroup": add_axiom("Inverse"), # Useful?
@@ -745,6 +756,22 @@ true_properties_to_structure = {
 false_properties_to_structure = {
     #"IsFinite": add_axiom("Infinite"),
 }
+
+def fill_allignment_database(cls):
+    """
+    Fill the database mapping gap categories / properties to their
+    corresponding (super) Sage categories from the semantic
+    information stored in the category class
+    """
+    assert issubclass(cls, Category)
+
+    gap = cls._semantic.get("gap")
+    gap_sub = cls._semantic.get("gap_sub", gap)
+    gap_negation = cls._semantic.get("gap_negation")
+    if gap_sub is not None:
+        gap_category_to_structure[gap_sub] = add(category=cls)
+    if gap_negation is not None:
+        false_properties_to_structure[gap_negation] = add(category=cls)
 
 def retrieve_structure_of_gap_handle(self):
     """
@@ -798,6 +825,155 @@ def retrieve_structure_of_gap_handle(self):
         structure.category = structure.category.Division()
     return structure
 
-#from mmt import LieAlgebras
+##############################################################################
+# `typing` extensions to cast from a GAP handle
 
-import sage_annotations
+from sage_annotations.misc import sage_typing as typing
+
+def Any_from_handle(self, handle):
+    import mygap
+    return mygap.GAP(handle)
+typing.Any.__class__.from_handle = Any_from_handle
+def Iterator_from_handle(cls, handle):
+    import mygap
+    value_type = from_handle(cls.__args__[0])
+    return itertools.imap(value_type, mygap.GAPIterator(handle))
+typing.Iterator.from_handle = classmethod(Iterator_from_handle)
+def Container_from_handle(cls, handle):
+    container_type = cls.__extra__
+    if cls.__args__ is None:
+        return container_type(handle)
+    value_type = from_handle(cls.__args__[0])
+    return container_type(value_type(x) for x in handle)
+typing.Container.from_handle = classmethod(Container_from_handle)
+def Facade_from_handle(cls, handle):
+    import mygap
+    value_type = cls.__args__[0]
+    result = mygap.GAP(handle)
+    result._refine_category_(result.category().Facade())
+    result.facade_for = lambda: value_type
+    return result
+typing.Facade.from_handle = classmethod(Facade_from_handle)
+
+def from_handle(type):
+    if hasattr(type, "from_handle"):
+        return type.from_handle
+    else:
+        return type
+
+##############################################################################
+def gap_handle(x):
+    """
+    Return a low-level libgap handle to the corresponding GAP object.
+
+    EXAMPLES::
+
+        sage: from mygap import mygap
+        sage: from mmt import gap_handle
+        sage: h = libgap.GF(3)
+        sage: F = mygap(h)
+        sage: gap_handle(F) is h
+        True
+        sage: l = gap_handle([1,2,F])
+        sage: l
+        [ 1, 2, GF(3) ]
+        sage: l[0] == 1
+        True
+        sage: l[2] == h
+        True
+
+    .. TODO::
+
+        Maybe we just want, for x a glorified hand, libgap(x) to
+        return the corresponding low level handle
+    """
+    from mygap import GAPObject
+    if isinstance(x, (list, tuple)):
+        return libgap([gap_handle(y) for y in x])
+    elif isinstance(x, GAPObject):
+        return x.gap()
+    else:
+        return libgap(x)
+
+##############################################################################
+
+nested_classes_of_categories = [
+    "ParentMethods",
+    "ElementMethods",
+    "MorphismMethods",
+    "SubcategoryMethods",
+]
+
+def mmt_lookup_signature(*args):
+    raise NotImplementedError
+
+def generate_code(name, semantic):
+    codomain = semantic.get("codomain")
+    arity = semantic.get("arity")
+    gap_name = semantic.get("gap")
+    mmt_name = semantic.get("mmt")
+    mmt_theory = semantic.get("mmt_theory")
+    if gap_name is None: # codomain is None
+        signature = None
+        if mmt_name is not None:
+            signature = mmt_lookup_signature(mmt_theory, mmt_name)
+        if signature is not None:
+            domains, codomain = signature
+            if arity is None:
+                arity = len(domains)
+            else:
+                arity == len(domains)
+            # TODO: cleanup this logic
+            if all(domain == codomain for domain in domains):
+                codomain = typing.ParentOfSelf
+                #assert self.codomain is None or codomain == self.codomain
+    assert arity is not None
+    assert gap_name is not None
+    if codomain is None:
+        codomain = typing.Any
+    #assert isinstance(codomain, DependentType)
+    def wrapper_method(self, *args):
+        return from_handle(typing.specialize(codomain, self))(getattr(libgap, gap_name)(*gap_handle((self,)+args)))
+    wrapper_method.__name__ = name
+    wrapper_method.__doc__ = textwrap.dedent("""
+    Wrapper around GAP's method {}
+
+    arity: {}
+    codomain: {}
+    """).format(gap_name, arity, codomain)
+    return wrapper_method
+
+# Generate the GAP class
+def generate_GAP_subcategory_class(cls):
+    if not hasattr(cls, "_semantic"):
+        return
+    try:
+        # Can't use cls.GAP because of the binding behavior
+        GAP_cls = cls.__dict__['GAP']
+    except KeyError:
+        GAP_cls = type(cls.__name__+".GAP", (CategoryWithAxiom,), {})
+        GAP_cls.__module__ = cls.__module__
+        setattr(cls, 'GAP', GAP_cls)
+
+    # Recurse in nested classes
+    for name in nested_classes_of_categories:
+        try:
+            source = getattr(cls, name)
+            semantic = getattr(source, "_semantic")
+        except AttributeError:
+            continue
+
+        # Fetch the corresponding class in cls.GAP, creating it if needed
+        try:
+            target = getattr(GAP_cls, name)
+        except AttributeError:
+            target = type(name, (), {})
+            setattr(GAP_cls, name, target)
+
+        for (key, semantic) in semantic.items():
+            setattr(target, key, generate_code(key, semantic))
+
+# TODO: add a hook so that categories annotated later on get aligned
+for cls in typing.annotated_categories:
+    fill_allignment_database(cls)
+    generate_GAP_subcategory_class(cls)

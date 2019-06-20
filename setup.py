@@ -42,7 +42,7 @@ setup(
     ],
     keywords='SageMath, GAP',
     py_modules=['mygap','categories.objects'],
-    install_requires=['recursive-monkey-patch'], # 'Sage'
-    dependency_links=['http://github.com/nthiery/sage-semantic-annotations/tarball/master#egg=master'],
+    install_requires=['recursive-monkey-patch','sage-semantic-annotations==dev"], # 'Sage'
+    dependency_links=['http://github.com/nthiery/sage-semantic-annotations/tarball/master#egg=dev'],
     cmdclass = {'test': SageTest},
 )

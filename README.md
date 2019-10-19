@@ -190,7 +190,8 @@ using MMT.
 <td>
   This package was created as part of the Horizon 2020 European
   Research Infrastructure project
-  [OpenDreamKit](https://opendreamkit.org/) (grant agreement #676541).
+  <a href="https://opendreamkit.org/">OpenDreamKit</a>
+  (grant agreement <a href="https://opendreamkit.org/">#676541</a>).
 </td>
 </tr>
 </table>

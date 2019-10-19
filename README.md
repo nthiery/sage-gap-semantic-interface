@@ -159,8 +159,9 @@ MMT step to keep an extra bit of information, namely whether the
 monoid is additive or multiplicative (or something else; think of the
 bracket operation of Lie algebras).
 
+## Random notes on using with MMT
 
-## Dependencies
+### Dependencies
 
 The following are required by the automatically generated interface
 using MMT.
@@ -169,7 +170,7 @@ using MMT.
     sage -pip install lxml
     sage -python setup.py install
 
-# Download all the MMT stuff (optional)
+## Download all the MMT stuff (optional)
 
     mkdir MMT
     cd MMT
@@ -178,3 +179,18 @@ using MMT.
     git clone git@gl.mathhub.info:MMT/urtheories.git
     git clone git@gl.mathhub.info:MMT/examples.git
     git clone git@gl.mathhub.info:ODK/MMTPy
+
+## Acknowledgments
+
+<table class="none">
+<tr>
+<td>
+  <img src="http://opendreamkit.org/public/logos/Flag_of_Europe.svg" width="128">
+</td>
+<td>
+  This package was created as part of the Horizon 2020 European
+  Research Infrastructure project
+  [OpenDreamKit](https://opendreamkit.org/) (grant agreement #676541).
+</td>
+</tr>
+</table>

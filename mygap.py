@@ -146,18 +146,18 @@ More examples of structure computations with finite semigroups::
     [ "1", "C2", "S3", "S4" ]
 
     sage: T.j_classes()
-    [ <Green's D-class: IdentityTransformation>,
-      <Green's D-class: Transformation( [ 1, 2, 3, 1 ] )>,
-      <Green's D-class: Transformation( [ 2, 1, 2, 2 ] )>,
-      <Green's D-class: Transformation( [ 1, 1, 1, 1 ] )> ]
+    [ <Green's D-class: Transformation( [ 1, 1, 1, 1 ] )>,
+      <Green's D-class: Transformation( [ 1, 1, 1, 2 ] )>,
+      <Green's D-class: Transformation( [ 1, 1, 2, 3 ] )>,
+      <Green's D-class: IdentityTransformation> ]
 
     sage: R = T.r_classes()
     sage: R
-    [ <Green's R-class: IdentityTransformation>,
+    [ <Green's R-class: Transformation( [ 1, 1, 1, 1 ] )>,
       ...
-      <Green's R-class: Transformation( [ 1, 1, 1, 1 ] )> ]
+      <Green's R-class: IdentityTransformation> ]
 
-    sage: C = R[1]; C
+    sage: C = R[11]; C
     <Green's R-class: Transformation( [ 1, 2, 3, 1 ] )>
     sage: C.category()
     Category of facade finite g a p greens class
@@ -382,6 +382,7 @@ from sage.structure.parent import Parent
 from sage.libs.gap.libgap import libgap
 from sage.libs.gap.element import GapElement
 from sage.categories.category_with_axiom import CategoryWithAxiom
+from sage.misc.constant_function import ConstantFunction
 
 ##############################################################################
 # Initialization
@@ -527,6 +528,7 @@ class GAPObject(object):
 
     def _repr_(self):
         return repr(self.gap())
+    __repr__ = _repr_
 
     def _wrap(self, obj):
         return GAP(obj)
@@ -535,8 +537,10 @@ class GAPObject(object):
     def __hash__(self):
         return hash(self._repr_())
 
-    def __cmp__(self, other):
-        return cmp(id(self), id(other))
+    def __cmp__(self, other): # Would be nicer to provide id as sorting key ...
+        a = id(self)
+        b = id(other)
+        return (a > b) - (a < b)
 
     def __eq__(self, other):
         """
@@ -614,6 +618,7 @@ class GAPParent(GAPObject, Parent):
             return GAP(self.gap())
 
 class GAPMorphism(GAPObject): # TODO: inherit from morphism and move the methods to the categories
+
     @cached_method
     def domain(self):
         return self._wrap(self.gap().Source())
@@ -629,6 +634,7 @@ class GAPMorphism(GAPObject): # TODO: inherit from morphism and move the methods
         return self.domain()(self.gap().PreImageElm(y.gap()))
 
 class GAPIterator(GAPObject):
+
     def __iter__(self):
         """
         Return self, as per the iterator protocol.
@@ -644,7 +650,7 @@ class GAPIterator(GAPObject):
         return self
 
 
-    def next(self):
+    def __next__(self):
         """
         Return the next object of this iterator or raise StopIteration, as
         per the iterator protocol.
@@ -654,13 +660,13 @@ class GAPIterator(GAPObject):
             sage: from mygap import GAPIterator
             sage: l = libgap([1,3,2])
             sage: it = GAPIterator(l.Iterator())
-            sage: it.next()
+            sage: it.__next__()
             1
-            sage: it.next()
+            sage: it.__next__()
             3
-            sage: it.next()
+            sage: it.__next__()
             2
-            sage: it.next()
+            sage: it.__next__()
             Traceback (most recent call last):
             ...
             StopIteration
@@ -819,26 +825,36 @@ def Any_from_handle(self, handle):
     import mygap
     return mygap.GAP(handle)
 typing.Any.__class__.from_handle = Any_from_handle
-def Iterator_from_handle(cls, handle):
-    import mygap
-    value_type = from_handle(cls.__args__[0])
-    return itertools.imap(value_type, mygap.GAPIterator(handle))
-typing.Iterator.from_handle = classmethod(Iterator_from_handle)
-def Container_from_handle(cls, handle):
-    container_type = cls.__extra__
-    if cls.__args__ is None:
+def GenericAlias_from_handle(self, handle):
+    """
+        sage: import typing, mygap
+        sage: t = typing.List[int]
+        sage: t.from_handle((1,2,3))
+        [1, 2, 3]
+    """
+    container_type = self.__origin__
+    if self.__args__ is None:
         return container_type(handle)
-    value_type = from_handle(cls.__args__[0])
+    if hasattr(container_type, "from_handle"):
+        return container_type.from_handle(self, handle)
+    value_type = from_handle(self.__args__[0])
     return container_type(value_type(x) for x in handle)
-typing.Container.from_handle = classmethod(Container_from_handle)
-def Facade_from_handle(cls, handle):
+typing._GenericAlias.from_handle = GenericAlias_from_handle
+
+def Facade_from_handle(self, handle):
+    value_type = self.__args__[0]
     import mygap
-    value_type = cls.__args__[0]
     result = mygap.GAP(handle)
     result._refine_category_(result.category().Facade())
-    result.facade_for = lambda: value_type
+    result.facade_for = ConstantFunction(value_type)
     return result
-typing.Facade.from_handle = classmethod(Facade_from_handle)
+typing.Facade.from_handle = Facade_from_handle
+
+def Iterator_from_handle(self, handle):
+    value_type = from_handle(self.__args__[0])
+    import mygap
+    return map(value_type, mygap.GAPIterator(handle))
+typing.Iterator.from_handle = Iterator_from_handle
 
 def from_handle(type):
     if hasattr(type, "from_handle"):
